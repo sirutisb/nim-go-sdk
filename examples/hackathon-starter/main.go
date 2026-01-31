@@ -94,6 +94,10 @@ func main() {
 	srv.AddTools(tools.LiminalTools(liminalExecutor)...)
 	log.Println("✅ Added 9 Liminal banking tools")
 
+	// Add gas fee monitoring tool
+	srv.AddTool(tools.NewGasFeeTool())
+	log.Println("✅ Added gas fee monitoring tool")
+
 	// ============================================================================
 	// ADD CUSTOM TOOLS
 	// ============================================================================
@@ -175,6 +179,10 @@ AVAILABLE BANKING TOOLS:
 
 CUSTOM ANALYTICAL TOOLS:
 - Analyze spending patterns (analyze_spending)
+
+BLOCKCHAIN TOOLS:
+- Check gas/transaction fees (get_gas_fees) - supports Bitcoin and Ethereum
+  Example: "What are Bitcoin fees right now?" or "Check Ethereum gas prices"
 
 TIPS FOR GREAT INTERACTIONS:
 - Proactively suggest relevant actions ("Want me to move some to savings?")
