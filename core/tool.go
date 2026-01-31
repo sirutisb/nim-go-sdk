@@ -1,8 +1,10 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"text/template"
 )
 
 // Tool is the interface for all tools available to agents.
@@ -121,7 +123,32 @@ func (t *BaseTool) Execute(ctx context.Context, params *ToolParams) (*ToolResult
 
 // GetSummary returns a formatted summary using the template.
 func (t *BaseTool) GetSummary(input json.RawMessage) string {
-	return t.definition.SummaryTemplate
+	// If no template, return empty string
+	if t.definition.SummaryTemplate == "" {
+		return ""
+	}
+
+	// Parse input JSON into a map for templating
+	var data map[string]interface{}
+	if err := json.Unmarshal(input, &data); err != nil {
+		// If parsing fails, return the template as-is
+		return t.definition.SummaryTemplate
+	}
+
+	// Create and execute template
+	tmpl, err := template.New("summary").Parse(t.definition.SummaryTemplate)
+	if err != nil {
+		// If template parsing fails, return the template as-is
+		return t.definition.SummaryTemplate
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		// If template execution fails, return the template as-is
+		return t.definition.SummaryTemplate
+	}
+
+	return buf.String()
 }
 
 // Definition returns the underlying ToolDefinition.
