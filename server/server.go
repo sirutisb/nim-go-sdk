@@ -439,12 +439,14 @@ func (s *Server) handleOutput(ctx context.Context, conn *websocket.Conn, sess *s
 	}
 }
 
+// THIS IS IMPORTANT!!!!!!
 func (s *Server) handleConfirm(ctx context.Context, conn *websocket.Conn, sess *session, userID, actionID string) {
 	log.Printf("Processing confirmation for action=%s, user=%s", actionID, userID)
 
 	// Get and remove confirmation
 	action, err := s.confirmations.Confirm(ctx, userID, actionID)
 	if err != nil {
+		log.Printf("[DEBUG] Confirmation not found or expired: action=%s, error=%v", actionID, err)
 		s.send(conn, ServerMessage{
 			Type:    "text",
 			Content: "That action expired. Would you like me to set it up again?",
@@ -453,19 +455,43 @@ func (s *Server) handleConfirm(ctx context.Context, conn *websocket.Conn, sess *
 		return
 	}
 
+	// Debug: Log tool execution details
+	log.Printf("[DEBUG] Confirmed action details: tool=%s, action_id=%s", action.Tool, action.ID)
+	log.Printf("[DEBUG] Executing confirmed tool with input: %s", string(action.Input))
+
 	// Execute the confirmed tool
 	result, err := s.engine.ExecuteTool(ctx, userID, action.Tool, action.Input, action.ID)
 
 	var resultContent string
 	var isError bool
 	if err != nil {
+		log.Printf("[DEBUG] Tool execution error: %v", err)
 		resultContent = fmt.Sprintf("Error: %v", err)
 		isError = true
 	} else if !result.Success {
+		log.Printf("[DEBUG] Tool execution failed: %s", result.Error)
 		resultContent = result.Error
 		isError = true
 	} else {
+		// Debug: Log successful execution with details
 		resultBytes, _ := json.Marshal(result.Data)
+		log.Printf("[DEBUG] Tool execution succeeded: %s", string(resultBytes))
+
+		// Extract transaction ID for payment operations
+		if action.Tool == "send_money" || action.Tool == "deposit_savings" || action.Tool == "withdraw_savings" {
+			var txData map[string]interface{}
+			// result.Data is interface{}, need to marshal then unmarshal to extract fields
+			dataBytes, _ := json.Marshal(result.Data)
+			if err := json.Unmarshal(dataBytes, &txData); err == nil {
+				if txID, ok := txData["transactionId"].(string); ok && txID != "" {
+					log.Printf("[DEBUG] Transaction ID: %s", txID)
+				}
+				if txHash, ok := txData["txHash"].(string); ok && txHash != "" {
+					log.Printf("[DEBUG] Transaction Hash: %s", txHash)
+				}
+			}
+		}
+
 		resultContent = string(resultBytes)
 	}
 
@@ -485,6 +511,7 @@ func (s *Server) handleConfirm(ctx context.Context, conn *websocket.Conn, sess *
 
 	// Format success message
 	resultMsg := formatToolResult(action.Tool, result.Data)
+	log.Printf("[DEBUG] Sending formatted result to client: %s", resultMsg)
 	sess.History = append(sess.History, core.NewAssistantMessage(resultMsg))
 
 	s.persistMessage(ctx, sess.ConversationID, "assistant", resultMsg)

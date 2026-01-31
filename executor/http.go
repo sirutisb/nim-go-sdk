@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -18,8 +19,8 @@ import (
 // This is the public implementation used by external developers.
 type HTTPExecutor struct {
 	baseURL    string
-	apiKey     string  // Deprecated: use jwtToken
-	jwtToken   string  // JWT for Bearer authentication
+	apiKey     string // Deprecated: use jwtToken
+	jwtToken   string // JWT for Bearer authentication
 	httpClient *http.Client
 }
 
@@ -108,6 +109,12 @@ func (e *HTTPExecutor) endpointForTool(tool string) string {
 func (e *HTTPExecutor) doRequest(ctx context.Context, method, endpoint string, body interface{}, toolName string) (*core.ExecuteResponse, error) {
 	urlStr := e.baseURL + endpoint
 
+	// Debug: Log request details
+	if toolName != "" {
+		log.Printf("[DEBUG] Executing tool: %s", toolName)
+	}
+	log.Printf("[DEBUG] Making %s request to %s", method, endpoint)
+
 	var bodyReader io.Reader
 
 	// For GET requests, encode parameters as query string instead of body
@@ -146,9 +153,11 @@ func (e *HTTPExecutor) doRequest(ctx context.Context, method, endpoint string, b
 	// Prefer JWT over API key
 	if e.jwtToken != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", e.jwtToken))
+		log.Printf("[DEBUG] Using JWT authentication")
 	} else if e.apiKey != "" {
 		// Fallback to API key for backward compatibility
 		req.Header.Set("X-API-Key", e.apiKey)
+		log.Printf("[DEBUG] Using API key authentication")
 	}
 
 	resp, err := e.httpClient.Do(req)
@@ -162,11 +171,16 @@ func (e *HTTPExecutor) doRequest(ctx context.Context, method, endpoint string, b
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
+	// Debug: Log response status and body
+	log.Printf("[DEBUG] HTTP Response: %d", resp.StatusCode)
 	if resp.StatusCode >= 400 {
+		log.Printf("[DEBUG] Error response body: %s", string(respBody))
 		return &core.ExecuteResponse{
 			Success: false,
 			Error:   fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(respBody)),
 		}, nil
+	} else {
+		log.Printf("[DEBUG] Success response body: %s", string(respBody))
 	}
 
 	// Gateway returns raw proto response (not wrapped in ExecuteResponse)
@@ -182,6 +196,7 @@ func (e *HTTPExecutor) doRequest(ctx context.Context, method, endpoint string, b
 		return nil, fmt.Errorf("failed to marshal %s response: %w", toolName, err)
 	}
 
+	log.Printf("[DEBUG] Tool execution completed successfully for: %s", toolName)
 	return &core.ExecuteResponse{
 		Success: true,
 		Data:    json.RawMessage(dataBytes),
