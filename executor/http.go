@@ -127,7 +127,25 @@ func (e *HTTPExecutor) doRequest(ctx context.Context, method, endpoint string, b
 		}
 		bodyReader = nil
 	} else if body != nil {
-		bodyBytes, err := json.Marshal(body)
+		// For grpc-gateway endpoints, send only the tool parameters (Input field),
+		// not the entire ExecuteRequest wrapper. User ID comes from JWT auth.
+		var bodyToSend interface{}
+		if execReq, ok := body.(*core.ExecuteRequest); ok {
+			// Extract just the Input params from the wrapper
+			var params map[string]interface{}
+			if len(execReq.Input) > 0 {
+				if err := json.Unmarshal(execReq.Input, &params); err != nil {
+					return nil, fmt.Errorf("failed to unmarshal input params: %w", err)
+				}
+				bodyToSend = params
+			} else {
+				bodyToSend = map[string]interface{}{}
+			}
+		} else {
+			bodyToSend = body // Non-ExecuteRequest bodies pass through
+		}
+
+		bodyBytes, err := json.Marshal(bodyToSend)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal request: %w", err)
 		}
