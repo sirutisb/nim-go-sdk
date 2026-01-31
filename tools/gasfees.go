@@ -106,7 +106,7 @@ func getBitcoinGasFees() (map[string]interface{}, error) {
 	usdCost := btcForTx * btcPrice
 
 	// Determine traffic level
-	trafficLevel := getTrafficLevel(float64(fees.HourFee))
+	trafficLevel := getTrafficLevel(float64(fees.HourFee), "bitcoin")
 
 	return map[string]interface{}{
 		"blockchain":    "Bitcoin",
@@ -184,7 +184,7 @@ func getEthereumGasFees() (map[string]interface{}, error) {
 	usdCost := ethCost * ethPrice
 
 	// Determine traffic level
-	trafficLevel := getTrafficLevel(proposeGas)
+	trafficLevel := getTrafficLevel(proposeGas, "ethereum")
 
 	return map[string]interface{}{
 		"blockchain":    "Ethereum",
@@ -203,7 +203,22 @@ func getEthereumGasFees() (map[string]interface{}, error) {
 }
 
 // getTrafficLevel determines network congestion level
-func getTrafficLevel(fee float64) string {
+func getTrafficLevel(fee float64, blockchain string) string {
+	if blockchain == "ethereum" {
+		// Ethereum gwei thresholds
+		switch {
+		case fee <= 15:
+			return "LOW"
+		case fee <= 40:
+			return "MEDIUM"
+		case fee <= 80:
+			return "HIGH"
+		default:
+			return "VERY HIGH"
+		}
+	}
+
+	// Bitcoin sat/vB thresholds
 	switch {
 	case fee <= 5:
 		return "LOW"
