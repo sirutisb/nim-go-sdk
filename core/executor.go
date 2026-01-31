@@ -118,7 +118,8 @@ func (t *ExecutorTool) Execute(ctx context.Context, params *ToolParams) (*ToolRe
 
 	if t.definition.RequiresUserConfirmation && params.ConfirmationID != "" {
 		// This is a confirmed write operation
-		resp, err = t.executor.Confirm(ctx, params.UserID, params.ConfirmationID)
+		// Execute the write operation directly since confirmations are managed server-side
+		resp, err = t.executor.ExecuteWrite(ctx, req)
 	} else if t.definition.RequiresUserConfirmation {
 		// This is a write operation that needs confirmation
 		resp, err = t.executor.ExecuteWrite(ctx, req)

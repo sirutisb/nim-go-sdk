@@ -111,6 +111,17 @@ func main() {
 
 	srv.AddTool(createCheckSplitterTool(liminalExecutor))
 	log.Println("✅ Added check splitter tool")
+	srv.AddTool(createTopInvestmentsTool())
+	log.Println("✅ Added top investments tool")
+
+	srv.AddTool(createSetSavingsGoalTool())
+	srv.AddTool(createGetSavingsGoalsTool())
+	srv.AddTool(createUpdateGoalProgressTool())
+	log.Println("✅ Added savings goal tools")
+
+	srv.AddTool(createBudgetTool())
+	srv.AddTool(createGetBudgetsTool(liminalExecutor))
+	log.Println("✅ Added budget management tools")
 
 	// TODO: Add more custom tools here!
 	// Examples:
@@ -187,6 +198,16 @@ CUSTOM ANALYTICAL TOOLS:
 - Track subscriptions (track_subscriptions)
 - Summarize spending with insights (summarize_spending)
 - Split checks with friends (split_check)
+- Get top performing investments (get_top_investments)
+
+SAVINGS GOAL TOOLS:
+- Set a savings or spending goal (set_savings_goal) - supports categories and deadlines
+- View all savings goals with progress (get_savings_goals) - shows if on track
+- Update goal amount (update_goal_progress) - track savings or spending manually
+
+BUDGET MANAGEMENT TOOLS:
+- Create a spending budget (create_budget) - set monthly limits with automatic transaction tracking
+- View all budgets (get_budgets) - see spending calculated from transaction history
 
 TIPS FOR GREAT INTERACTIONS:
 - Proactively suggest relevant actions ("Want me to move some to savings?")
@@ -356,6 +377,91 @@ func calculateVelocity(transactionCount, days int) string {
 	default:
 		return "high"
 	}
+}
+
+// ============================================================================
+// CUSTOM TOOL: TOP INVESTMENTS
+// ============================================================================
+// This tool returns mock data about top performing investments at the current time.
+// It demonstrates a simple tool that doesn't require any parameters and returns
+// hard-coded mock data. Perfect for prototyping new features!
+
+func createTopInvestmentsTool() core.Tool {
+	return tools.New("get_top_investments").
+		Description("Fetch the top performing investments at the current time. Returns information about the best investment opportunities available right now.").
+		Schema(tools.ObjectSchema(map[string]interface{}{})).
+		Handler(func(ctx context.Context, toolParams *core.ToolParams) (*core.ToolResult, error) {
+			// Return mock hard-coded investment data
+			result := map[string]interface{}{
+				"timestamp":   time.Now().Format(time.RFC3339),
+				"data_source": "Mock Investment Data",
+				"top_investments": []map[string]interface{}{
+					{
+						"rank":               1,
+						"name":               "Stablecoin Yield Fund",
+						"ticker":             "USDC-Y",
+						"performance_30d":    "8.5%",
+						"annual_yield":       "102.0%",
+						"risk_level":         "Low",
+						"minimum_investment": "$100",
+						"description":        "High-yield stablecoin fund with daily compounding",
+					},
+					{
+						"rank":               2,
+						"name":               "DeFi Blue Chip Index",
+						"ticker":             "DEFI-BC",
+						"performance_30d":    "12.3%",
+						"annual_yield":       "147.6%",
+						"risk_level":         "Medium",
+						"minimum_investment": "$500",
+						"description":        "Diversified portfolio of top DeFi protocols",
+					},
+					{
+						"rank":               3,
+						"name":               "Liquidity Pool Optimizer",
+						"ticker":             "LPO",
+						"performance_30d":    "15.7%",
+						"annual_yield":       "188.4%",
+						"risk_level":         "Medium-High",
+						"minimum_investment": "$250",
+						"description":        "Automated liquidity pool strategy across multiple DEXs",
+					},
+					{
+						"rank":               4,
+						"name":               "Savings Vault Pro",
+						"ticker":             "SVLT-P",
+						"performance_30d":    "6.2%",
+						"annual_yield":       "74.4%",
+						"risk_level":         "Very Low",
+						"minimum_investment": "$50",
+						"description":        "Conservative savings strategy with guaranteed returns",
+					},
+					{
+						"rank":               5,
+						"name":               "Yield Farming Bundle",
+						"ticker":             "YFB",
+						"performance_30d":    "18.9%",
+						"annual_yield":       "226.8%",
+						"risk_level":         "High",
+						"minimum_investment": "$1000",
+						"description":        "Aggressive yield farming strategy for maximum returns",
+					},
+				},
+				"market_summary": map[string]interface{}{
+					"average_yield":    "12.3%",
+					"trending_sector":  "Stablecoin Yields",
+					"market_sentiment": "Bullish",
+					"volatility_index": "Low to Medium",
+				},
+				"disclaimer": "This is mock data for demonstration purposes only. Not financial advice.",
+			}
+
+			return &core.ToolResult{
+				Success: true,
+				Data:    result,
+			}, nil
+		}).
+		Build()
 }
 
 // ============================================================================

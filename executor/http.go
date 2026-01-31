@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -18,8 +19,8 @@ import (
 // This is the public implementation used by external developers.
 type HTTPExecutor struct {
 	baseURL    string
-	apiKey     string  // Deprecated: use jwtToken
-	jwtToken   string  // JWT for Bearer authentication
+	apiKey     string // Deprecated: use jwtToken
+	jwtToken   string // JWT for Bearer authentication
 	httpClient *http.Client
 }
 
@@ -85,15 +86,16 @@ func (e *HTTPExecutor) Cancel(ctx context.Context, userID, confirmationID string
 func (e *HTTPExecutor) endpointForTool(tool string) string {
 	// Map tool names to nim_gateway endpoints
 	endpoints := map[string]string{
-		"get_balance":         "/nim/v1/agent/wallet/balance",
-		"get_savings_balance": "/nim/v1/agent/savings/balance",
-		"get_vault_rates":     "/nim/v1/agent/savings/vaults",
-		"get_transactions":    "/nim/v1/agent/transactions",
-		"get_profile":         "/nim/v1/agent/profile",
-		"search_users":        "/nim/v1/agent/users/search",
-		"send_money":          "/nim/v1/agent/payments/send",
-		"deposit_savings":     "/nim/v1/agent/savings/deposit",
-		"withdraw_savings":    "/nim/v1/agent/savings/withdraw",
+		"get_balance":           "/nim/v1/agent/wallet/balance",
+		"get_savings_balance":   "/nim/v1/agent/savings/balance",
+		"get_vault_rates":       "/nim/v1/agent/savings/vaults",
+		"get_transactions":      "/nim/v1/agent/transactions",
+		"get_profile":           "/nim/v1/agent/profile",
+		"search_users":          "/nim/v1/agent/users/search",
+		"send_money":            "/nim/v1/agent/payments/send",
+		"deposit_savings":       "/nim/v1/agent/savings/deposit",
+		"withdraw_savings":      "/nim/v1/agent/savings/withdraw",
+		"execute_contract_call": "/nim/v1/agent/wallet/execute",
 	}
 
 	if endpoint, ok := endpoints[tool]; ok {
@@ -106,6 +108,12 @@ func (e *HTTPExecutor) endpointForTool(tool string) string {
 // doRequest performs an HTTP request to the agent_gateway.
 func (e *HTTPExecutor) doRequest(ctx context.Context, method, endpoint string, body interface{}, toolName string) (*core.ExecuteResponse, error) {
 	urlStr := e.baseURL + endpoint
+
+	// Debug: Log request details
+	if toolName != "" {
+		log.Printf("[DEBUG] Executing tool: %s", toolName)
+	}
+	log.Printf("[DEBUG] Making %s request to %s", method, endpoint)
 
 	var bodyReader io.Reader
 
@@ -126,11 +134,24 @@ func (e *HTTPExecutor) doRequest(ctx context.Context, method, endpoint string, b
 		}
 		bodyReader = nil
 	} else if body != nil {
-		bodyBytes, err := json.Marshal(body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request: %w", err)
+		// For POST requests, only send the Input field (tool parameters)
+		// NOT the entire ExecuteRequest which includes user_id, tool, etc.
+		if execReq, ok := body.(*core.ExecuteRequest); ok {
+			// Send only the Input JSON (the tool parameters)
+			if len(execReq.Input) > 0 {
+				bodyReader = bytes.NewReader(execReq.Input)
+			} else {
+				// Empty input, send empty JSON object
+				bodyReader = bytes.NewReader([]byte("{}"))
+			}
+		} else {
+			// Fallback for non-ExecuteRequest bodies
+			bodyBytes, err := json.Marshal(body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal request: %w", err)
+			}
+			bodyReader = bytes.NewReader(bodyBytes)
 		}
-		bodyReader = bytes.NewReader(bodyBytes)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, urlStr, bodyReader)
@@ -145,9 +166,11 @@ func (e *HTTPExecutor) doRequest(ctx context.Context, method, endpoint string, b
 	// Prefer JWT over API key
 	if e.jwtToken != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", e.jwtToken))
+		log.Printf("[DEBUG] Using JWT authentication")
 	} else if e.apiKey != "" {
 		// Fallback to API key for backward compatibility
 		req.Header.Set("X-API-Key", e.apiKey)
+		log.Printf("[DEBUG] Using API key authentication")
 	}
 
 	resp, err := e.httpClient.Do(req)
@@ -161,11 +184,16 @@ func (e *HTTPExecutor) doRequest(ctx context.Context, method, endpoint string, b
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
+	// Debug: Log response status and body
+	log.Printf("[DEBUG] HTTP Response: %d", resp.StatusCode)
 	if resp.StatusCode >= 400 {
+		log.Printf("[DEBUG] Error response body: %s", string(respBody))
 		return &core.ExecuteResponse{
 			Success: false,
 			Error:   fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(respBody)),
 		}, nil
+	} else {
+		log.Printf("[DEBUG] Success response body: %s", string(respBody))
 	}
 
 	// Gateway returns raw proto response (not wrapped in ExecuteResponse)
@@ -181,6 +209,7 @@ func (e *HTTPExecutor) doRequest(ctx context.Context, method, endpoint string, b
 		return nil, fmt.Errorf("failed to marshal %s response: %w", toolName, err)
 	}
 
+	log.Printf("[DEBUG] Tool execution completed successfully for: %s", toolName)
 	return &core.ExecuteResponse{
 		Success: true,
 		Data:    json.RawMessage(dataBytes),
