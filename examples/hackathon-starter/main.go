@@ -94,6 +94,10 @@ func main() {
 	srv.AddTools(tools.LiminalTools(liminalExecutor)...)
 	log.Println("✅ Added 9 Liminal banking tools")
 
+	// Add gas fee monitoring tool
+	srv.AddTool(tools.NewGasFeeTool())
+	log.Println("✅ Added gas fee monitoring tool")
+
 	// ============================================================================
 	// ADD CUSTOM TOOLS
 	// ============================================================================
@@ -197,6 +201,10 @@ SAVINGS GOAL TOOLS:
 BUDGET MANAGEMENT TOOLS:
 - Create a spending budget (create_budget) - set monthly limits with automatic transaction tracking
 - View all budgets (get_budgets) - see spending calculated from transaction history
+
+BLOCKCHAIN TOOLS:
+- Check gas/transaction fees (get_gas_fees) - supports Bitcoin and Ethereum
+  Example: "What are Bitcoin fees right now?" or "Check Ethereum gas prices"
 
 TIPS FOR GREAT INTERACTIONS:
 - Proactively suggest relevant actions ("Want me to move some to savings?")
