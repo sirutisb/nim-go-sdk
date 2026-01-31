@@ -86,16 +86,16 @@ func (e *HTTPExecutor) Cancel(ctx context.Context, userID, confirmationID string
 func (e *HTTPExecutor) endpointForTool(tool string) string {
 	// Map tool names to nim_gateway endpoints
 	endpoints := map[string]string{
-		"get_balance":            "/nim/v1/agent/wallet/balance",
-		"get_savings_balance":    "/nim/v1/agent/savings/balance",
-		"get_vault_rates":        "/nim/v1/agent/savings/vaults",
-		"get_transactions":       "/nim/v1/agent/transactions",
-		"get_profile":            "/nim/v1/agent/profile",
-		"search_users":           "/nim/v1/agent/users/search",
-		"send_money":             "/nim/v1/agent/payments/send",
-		"deposit_savings":        "/nim/v1/agent/savings/deposit",
-		"withdraw_savings":       "/nim/v1/agent/savings/withdraw",
-		"execute_contract_call":  "/nim/v1/agent/wallet/execute",
+		"get_balance":           "/nim/v1/agent/wallet/balance",
+		"get_savings_balance":   "/nim/v1/agent/savings/balance",
+		"get_vault_rates":       "/nim/v1/agent/savings/vaults",
+		"get_transactions":      "/nim/v1/agent/transactions",
+		"get_profile":           "/nim/v1/agent/profile",
+		"search_users":          "/nim/v1/agent/users/search",
+		"send_money":            "/nim/v1/agent/payments/send",
+		"deposit_savings":       "/nim/v1/agent/savings/deposit",
+		"withdraw_savings":      "/nim/v1/agent/savings/withdraw",
+		"execute_contract_call": "/nim/v1/agent/wallet/execute",
 	}
 
 	if endpoint, ok := endpoints[tool]; ok {
@@ -134,11 +134,24 @@ func (e *HTTPExecutor) doRequest(ctx context.Context, method, endpoint string, b
 		}
 		bodyReader = nil
 	} else if body != nil {
-		bodyBytes, err := json.Marshal(body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request: %w", err)
+		// For POST requests, only send the Input field (tool parameters)
+		// NOT the entire ExecuteRequest which includes user_id, tool, etc.
+		if execReq, ok := body.(*core.ExecuteRequest); ok {
+			// Send only the Input JSON (the tool parameters)
+			if len(execReq.Input) > 0 {
+				bodyReader = bytes.NewReader(execReq.Input)
+			} else {
+				// Empty input, send empty JSON object
+				bodyReader = bytes.NewReader([]byte("{}"))
+			}
+		} else {
+			// Fallback for non-ExecuteRequest bodies
+			bodyBytes, err := json.Marshal(body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal request: %w", err)
+			}
+			bodyReader = bytes.NewReader(bodyBytes)
 		}
-		bodyReader = bytes.NewReader(bodyBytes)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, urlStr, bodyReader)
