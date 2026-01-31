@@ -109,6 +109,9 @@ func main() {
 	srv.AddTool(createSpendingSummaryTool(liminalExecutor))
 	log.Println("✅ Added spending summary tool")
 
+	srv.AddTool(createCheckSplitterTool(liminalExecutor))
+	log.Println("✅ Added check splitter tool")
+
 	// TODO: Add more custom tools here!
 	// Examples:
 	//   - Savings goal tracker
@@ -183,6 +186,7 @@ CUSTOM ANALYTICAL TOOLS:
 - Analyze spending patterns (analyze_spending)
 - Track subscriptions (track_subscriptions)
 - Summarize spending with insights (summarize_spending)
+- Split checks with friends (split_check)
 
 TIPS FOR GREAT INTERACTIONS:
 - Proactively suggest relevant actions ("Want me to move some to savings?")
