@@ -103,6 +103,12 @@ func main() {
 	srv.AddTool(createSpendingAnalyzerTool(liminalExecutor))
 	log.Println("✅ Added custom spending analyzer tool")
 
+	srv.AddTool(createSubscriptionTrackerTool(liminalExecutor))
+	log.Println("✅ Added subscription tracker tool")
+
+	srv.AddTool(createSpendingSummaryTool(liminalExecutor))
+	log.Println("✅ Added spending summary tool")
+
 	// TODO: Add more custom tools here!
 	// Examples:
 	//   - Savings goal tracker
@@ -175,6 +181,8 @@ AVAILABLE BANKING TOOLS:
 
 CUSTOM ANALYTICAL TOOLS:
 - Analyze spending patterns (analyze_spending)
+- Track subscriptions (track_subscriptions)
+- Summarize spending with insights (summarize_spending)
 
 TIPS FOR GREAT INTERACTIONS:
 - Proactively suggest relevant actions ("Want me to move some to savings?")
