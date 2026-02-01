@@ -1,3 +1,6 @@
+# Preview Video
+https://youtu.be/yspFSU1v2lw
+
 # Nimbus Go SDK
 
 <img width="746" height="827" alt="image" src="https://github.com/user-attachments/assets/1bf90187-f5a5-42a8-8f3e-e6fffafb7077" />
