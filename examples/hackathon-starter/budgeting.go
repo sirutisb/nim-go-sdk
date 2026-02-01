@@ -118,6 +118,9 @@ func createBudgetTool() core.Tool {
 				"note":           "Spending will be automatically tracked from your transaction history",
 			}
 
+			// Notify dashboard of update
+			NotifyDashboardUpdate("budget", "created")
+
 			return &core.ToolResult{
 				Success: true,
 				Data:    responseData,
@@ -412,6 +415,9 @@ func createUpdateBudgetTool() core.Tool {
 				}, nil
 			}
 
+			// Notify dashboard of update
+			NotifyDashboardUpdate("budget", "updated")
+
 			return &core.ToolResult{
 				Success: true,
 				Data: map[string]interface{}{
@@ -485,6 +491,9 @@ func createDeleteBudgetTool() core.Tool {
 					Error:   "No budget found with the provided identifier. Use get_budgets to see your budgets.",
 				}, nil
 			}
+
+			// Notify dashboard of update
+			NotifyDashboardUpdate("budget", "deleted")
 
 			return &core.ToolResult{
 				Success: true,

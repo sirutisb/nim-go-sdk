@@ -108,6 +108,9 @@ func createSetSavingsGoalTool() core.Tool {
 				"days_remaining": params.DeadlineDays,
 			}
 
+			// Notify dashboard of update
+			NotifyDashboardUpdate("savings_goal", "created")
+
 			return &core.ToolResult{
 				Success: true,
 				Data:    responseData,
@@ -344,6 +347,9 @@ func createUpdateGoalProgressTool() core.Tool {
 				message += " ⚠️ Alert: You have exceeded your spending limit!"
 			}
 
+			// Notify dashboard of update
+			NotifyDashboardUpdate("savings_goal", "updated")
+
 			return &core.ToolResult{
 				Success: true,
 				Data: map[string]interface{}{
@@ -422,6 +428,9 @@ func createDeleteSavingsGoalTool() core.Tool {
 					Error:   "No goal found with the provided identifier. Use get_savings_goals to see your goals.",
 				}, nil
 			}
+
+			// Notify dashboard of update
+			NotifyDashboardUpdate("savings_goal", "deleted")
 
 			return &core.ToolResult{
 				Success: true,

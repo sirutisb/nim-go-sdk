@@ -180,7 +180,8 @@ func main() {
 
 	// Register dashboard API routes before starting the server
 	RegisterDashboardRoutes(http.DefaultServeMux)
-	log.Println("✅ Registered dashboard API routes")
+	RegisterSSERoute(http.DefaultServeMux)
+	log.Println("✅ Registered dashboard API and SSE routes")
 
 	if err := srv.Run(":" + port); err != nil {
 		log.Fatal(err)

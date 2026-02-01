@@ -75,19 +75,24 @@ interface DashboardData {
 }
 
 function App() {
-  const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8080/ws'
-  const liminalApiUrl = import.meta.env.VITE_API_URL || 'https://api.liminal.cash'
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+  const wsUrl = (import.meta as any).env?.VITE_WS_URL || 'ws://localhost:8080/ws'
+  const liminalApiUrl = (import.meta as any).env?.VITE_API_URL || 'https://api.liminal.cash'
+  const backendUrl = (import.meta as any).env?.VITE_BACKEND_URL || 'http://localhost:8080'
 
   // State for dashboard data
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'subscriptions' | 'transactions' | 'goals' | 'budgets'>('overview')
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Fetch dashboard data
-  const fetchDashboardData = useCallback(async () => {
-    setIsLoading(true)
+  const fetchDashboardData = useCallback(async (showRefreshIndicator = false) => {
+    if (showRefreshIndicator) {
+      setIsRefreshing(true)
+    } else {
+      setIsLoading(true)
+    }
     setError(null)
     try {
       const response = await fetch(`${backendUrl}/api/dashboard`)
@@ -101,12 +106,38 @@ function App() {
       setError('Failed to load dashboard data. Is the backend running?')
     } finally {
       setIsLoading(false)
+      setIsRefreshing(false)
     }
   }, [backendUrl])
 
+  // Initial fetch
   useEffect(() => {
     fetchDashboardData()
   }, [fetchDashboardData])
+
+  // Subscribe to SSE for real-time updates
+  useEffect(() => {
+    const eventSource = new EventSource(`${backendUrl}/api/dashboard/events`)
+
+    eventSource.addEventListener('connected', () => {
+      console.log('[SSE] Connected to dashboard events')
+    })
+
+    eventSource.addEventListener('update', (event) => {
+      const data = JSON.parse(event.data)
+      console.log('[SSE] Received update:', data)
+      // Refresh dashboard data when an update is received
+      fetchDashboardData(true)
+    })
+
+    eventSource.onerror = (error) => {
+      console.error('[SSE] Connection error:', error)
+    }
+
+    return () => {
+      eventSource.close()
+    }
+  }, [backendUrl, fetchDashboardData])
 
   // Format currency
   const formatCurrency = (amount: number, currency: string = 'USD') => {
@@ -155,15 +186,15 @@ function App() {
       <main className="dashboard-main">
         <header className="dashboard-header">
           <h1>Financial Dashboard</h1>
-          <button className="refresh-btn" onClick={fetchDashboardData} disabled={isLoading}>
-            {isLoading ? '⟳ Loading...' : '↻ Refresh'}
+          <button className={`refresh-btn ${isRefreshing ? 'refreshing' : ''}`} onClick={() => fetchDashboardData()} disabled={isLoading}>
+            {isLoading ? '⟳ Loading...' : isRefreshing ? '↻ Updating...' : '↻ Refresh'}
           </button>
         </header>
 
         {error && (
           <div className="error-banner">
             <span>⚠️ {error}</span>
-            <button onClick={fetchDashboardData}>Retry</button>
+            <button onClick={() => fetchDashboardData()}>Retry</button>
           </div>
         )}
 
