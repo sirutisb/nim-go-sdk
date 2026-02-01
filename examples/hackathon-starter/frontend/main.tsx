@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import ReactDOM from 'react-dom/client'
-import { NimChat } from '@liminalcash/nim-chat'
-import '@liminalcash/nim-chat/styles.css'
+// import { NimChat } from '@liminalcash/nim-chat'
+// import '@liminalcash/nim-chat/styles.css'
+import { NimChat } from './nim-chat-plus-plus/nim-chat/src/NimChat'
+import './nim-chat-plus-plus/nim-chat/src/styles/index.css'
 import './styles.css'
 
 // Types for API responses
@@ -426,7 +428,7 @@ function App() {
       <NimChat
         wsUrl={wsUrl}
         apiUrl={liminalApiUrl}
-        title="Nim"
+        title="Nim++"
         position="bottom-right"
         defaultOpen={false}
       />
