@@ -1,5 +1,5 @@
 # Preview Video
-<iframe width="1747" height="1131" src="https://www.youtube.com/embed/yspFSU1v2lw" title="Nimbus (HSW 2026)" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+[![Watch the demo](https://img.youtube.com/vi/yspFSU1v2lw/maxresdefault.jpg)](https://youtu.be/yspFSU1v2lw)
 
 # Nimbus Go SDK
 
