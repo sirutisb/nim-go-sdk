@@ -387,11 +387,8 @@ function App() {
                     <div key={budget.id} className={`budget-card ${budget.is_active ? 'active' : 'inactive'}`} style={{ animationDelay: `${index * 50}ms` }}>
                       <div className="budget-header">
                         <span className="budget-name">{budget.name}</span>
-                        <span className={`budget-status ${budget.is_active ? 'active' : 'inactive'}`}>
-                          {budget.is_active ? '● Active' : '○ Inactive'}
-                        </span>
                       </div>
-                      {budget.category && <div className="budget-category"><Folder size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />{budget.category}</div>}
+                      {/* {budget.category && <div className="budget-category">{budget.category}</div>} */}
                       <div className="budget-limit">
                         <span className="limit-label">Limit:</span>
                         <span className="limit-amount">${budget.limit_amount.toFixed(2)}</span>
