@@ -115,6 +115,10 @@ func main() {
 
 	srv.AddTool(createCheckSplitterTool(liminalExecutor))
 	log.Println("✅ Added check splitter tool")
+
+	srv.AddTool(createResearchTool())
+	log.Println("✅ Added research tool")
+
 	srv.AddTool(createTopInvestmentsTool())
 	log.Println("✅ Added top investments tool")
 
@@ -176,6 +180,7 @@ WHEN TO USE TOOLS:
 - For actions, gather all required info first ("send $50 to @alice")
 - Always confirm before executing money movements
 - Don't use tools for general questions about how things work
+- Always use the 'research' tool if the user's prompt contains the word 'research'.
 
 MONEY MOVEMENT RULES (IMPORTANT):
 - ALL money movements require explicit user confirmation
@@ -202,6 +207,7 @@ CUSTOM ANALYTICAL TOOLS:
 - Track subscriptions (track_subscriptions)
 - Summarize spending with insights (summarize_spending)
 - Split checks with friends (split_check)
+- Research any topic (research) - powered by Perplexity AI
 - Get top performing investments (get_top_investments)
 
 SAVINGS GOAL TOOLS:
