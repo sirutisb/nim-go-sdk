@@ -3,6 +3,23 @@ import ReactDOM from 'react-dom/client'
 import { NimChat } from '@liminalcash/nim-chat'
 import '@liminalcash/nim-chat/styles.css'
 import './styles.css'
+import {
+  AlertTriangle,
+  BarChart3,
+  CreditCard,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  Wallet,
+  PiggyBank,
+  Folder,
+  Smartphone,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowDown,
+  ArrowUp,
+  Banknote,
+} from 'lucide-react'
 
 // Types for API responses
 interface SubscriptionDTO {
@@ -172,7 +189,7 @@ function App() {
 
   // Get direction icon
   const getDirectionIcon = (direction: string) => {
-    return direction === 'credit' ? '↓' : '↑'
+    return direction === 'credit' ? <ArrowDown size={16} /> : <ArrowUp size={16} />
   }
 
   // Calculate goal progress
@@ -188,14 +205,11 @@ function App() {
             <h1>Financial Dashboard</h1>
             <p className="header-subtitle">All your financial data in one place</p>
           </div>
-          <button className={`refresh-btn ${isRefreshing ? 'refreshing' : ''}`} onClick={() => fetchDashboardData()} disabled={isLoading}>
-            {isLoading ? '⟳ Loading...' : isRefreshing ? '↻ Updating...' : '↻ Refresh'}
-          </button>
         </header>
 
         {error && (
           <div className="error-banner">
-            <span>⚠️ {error}</span>
+            <span><AlertTriangle size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />{error}</span>
             <button onClick={() => fetchDashboardData()}>Retry</button>
           </div>
         )}
@@ -206,12 +220,12 @@ function App() {
             {/* Summary Cards Section */}
             <section className="dashboard-section summary-section" data-section="summary">
               <div className="section-title-wrapper">
-                <h2 className="section-title">📊 Overview</h2>
+                <h2 className="section-title"><BarChart3 size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Overview</h2>
                 <div className="section-divider"></div>
               </div>
               <div className="summary-grid">
                 <div className="summary-card orange">
-                  <div className="summary-icon">💳</div>
+                  <div className="summary-icon"><CreditCard size={24} /></div>
                   <div className="summary-content">
                     <div className="summary-label">Subscriptions</div>
                     <div className="summary-value">{dashboardData.summary.total_subscriptions}</div>
@@ -222,7 +236,7 @@ function App() {
                 </div>
 
                 <div className="summary-card blue">
-                  <div className="summary-icon">📈</div>
+                  <div className="summary-icon"><TrendingUp size={24} /></div>
                   <div className="summary-content">
                     <div className="summary-label">Total Received</div>
                     <div className="summary-value">${dashboardData.summary.total_received.toFixed(2)}</div>
@@ -233,7 +247,7 @@ function App() {
                 </div>
 
                 <div className="summary-card brown">
-                  <div className="summary-icon">📉</div>
+                  <div className="summary-icon"><TrendingDown size={24} /></div>
                   <div className="summary-content">
                     <div className="summary-label">Total Spent</div>
                     <div className="summary-value">${dashboardData.summary.total_spent.toFixed(2)}</div>
@@ -242,7 +256,7 @@ function App() {
                 </div>
 
                 <div className="summary-card beige">
-                  <div className="summary-icon">🎯</div>
+                  <div className="summary-icon"><Target size={24} /></div>
                   <div className="summary-content">
                     <div className="summary-label">Active Goals</div>
                     <div className="summary-value">{dashboardData.summary.active_goals}</div>
@@ -257,7 +271,7 @@ function App() {
             {/* Savings Goals Section */}
             <section className="dashboard-section" data-section="goals">
               <div className="section-title-wrapper">
-                <h2 className="section-title">🎯 Savings Goals</h2>
+                <h2 className="section-title"><Target size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Savings Goals</h2>
                 <div className="section-meta">
                   <span className="highlight">{dashboardData.summary.active_goals}</span> active ·
                   <span className="highlight"> {dashboardData.summary.completed_goals}</span> completed
@@ -268,7 +282,7 @@ function App() {
                   {dashboardData.savings_goals.map((goal, index) => (
                     <div key={goal.id} className={`goal-card ${goal.is_completed ? 'completed' : ''}`} style={{ animationDelay: `${index * 50}ms` }}>
                       <div className="goal-header">
-                        <span className="goal-icon">{goal.goal_type === 'savings' ? '💰' : '📊'}</span>
+                        <span className="goal-icon">{goal.goal_type === 'savings' ? <PiggyBank size={18} /> : <BarChart3 size={18} />}</span>
                         <span className={`goal-type ${goal.goal_type}`}>{goal.goal_type}</span>
                       </div>
                       <div className="goal-name">{goal.name}</div>
@@ -292,7 +306,7 @@ function App() {
                 </div>
               ) : (
                 <div className="empty-state">
-                  <p>🎯 No savings goals yet</p>
+                  <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No savings goals yet</p>
                   <p className="hint">Ask Nim to help you set a savings goal!</p>
                 </div>
               )}
@@ -301,7 +315,7 @@ function App() {
             {/* Budgets Section */}
             <section className="dashboard-section" data-section="budgets">
               <div className="section-title-wrapper">
-                <h2 className="section-title">💰 Budgets</h2>
+                <h2 className="section-title"><Wallet size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Budgets</h2>
                 <div className="section-meta">
                   <span className="highlight">{dashboardData.summary.active_budgets}</span> active
                 </div>
@@ -316,7 +330,7 @@ function App() {
                           {budget.is_active ? '● Active' : '○ Inactive'}
                         </span>
                       </div>
-                      {budget.category && <div className="budget-category">📁 {budget.category}</div>}
+                      {budget.category && <div className="budget-category"><Folder size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />{budget.category}</div>}
                       <div className="budget-limit">
                         <span className="limit-label">Limit:</span>
                         <span className="limit-amount">${budget.limit_amount.toFixed(2)}</span>
@@ -329,7 +343,7 @@ function App() {
                 </div>
               ) : (
                 <div className="empty-state">
-                  <p>💰 No budgets set</p>
+                  <p><Wallet size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No budgets set</p>
                   <p className="hint">Ask Nim to help you create a budget!</p>
                 </div>
               )}
@@ -340,7 +354,7 @@ function App() {
               {/* Subscriptions Section */}
               <section className="dashboard-section half-width" data-section="subscriptions">
                 <div className="section-title-wrapper">
-                  <h2 className="section-title">📱 Subscriptions</h2>
+                  <h2 className="section-title"><Smartphone size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Subscriptions</h2>
                   <div className="section-meta">
                     Total: <span className="highlight">${dashboardData.summary.monthly_subscription_cost.toFixed(2)}/month</span>
                   </div>
@@ -349,7 +363,7 @@ function App() {
                   <div className="subscriptions-list">
                     {dashboardData.subscriptions.map((sub, index) => (
                       <div key={sub.id} className="subscription-card" style={{ animationDelay: `${index * 50}ms` }}>
-                        <div className="sub-icon">📱</div>
+                        <div className="sub-icon"><Smartphone size={20} /></div>
                         <div className="sub-details">
                           <div className="sub-name">{sub.name.replace(' subscription', '')}</div>
                           <div className="sub-meta">
@@ -366,7 +380,7 @@ function App() {
                   </div>
                 ) : (
                   <div className="empty-state">
-                    <p>📱 No subscriptions tracked yet</p>
+                    <p><Smartphone size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No subscriptions tracked yet</p>
                     <p className="hint">Ask Nim to help you track a subscription!</p>
                   </div>
                 )}
@@ -375,7 +389,7 @@ function App() {
               {/* Transactions Section */}
               <section className="dashboard-section half-width" data-section="transactions">
                 <div className="section-title-wrapper">
-                  <h2 className="section-title">💸 Recent Transactions</h2>
+                  <h2 className="section-title"><Banknote size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Recent Transactions</h2>
                   <div className="section-meta">
                     <span className="highlight">{dashboardData.transactions.length}</span> total
                   </div>
@@ -405,7 +419,7 @@ function App() {
                   </div>
                 ) : (
                   <div className="empty-state">
-                    <p>💸 No transactions yet</p>
+                    <p><Banknote size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No transactions yet</p>
                     <p className="hint">Your transaction history will appear here</p>
                   </div>
                 )}
