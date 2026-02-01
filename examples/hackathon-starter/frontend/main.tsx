@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { NimChat } from '@liminalcash/nim-chat'
 import '@liminalcash/nim-chat/styles.css'
 import './styles.css'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   AlertTriangle,
   BarChart3,
@@ -372,6 +373,33 @@ function App() {
     alert(`Generating PDF report for ${monthYear}...\n\nThis would export a comprehensive spending report with:\n- Total spending breakdown\n- Category analysis\n- Transaction history\n- Budget comparison`)
   }
 
+  // Animation variants
+  const fadeInUp = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 }
+  }
+
+  const staggerContainer = {
+    animate: {
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  }
+
+  const scaleIn = {
+    initial: { opacity: 0, scale: 0.9 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 0.9 }
+  }
+
+  const slideIn = {
+    initial: { opacity: 0, x: -20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: 20 }
+  }
+
   return (
     <>
       <main className="dashboard-main">
@@ -383,79 +411,160 @@ function App() {
           {/* Tab Navigation */}
           {dashboardData && (
             <div className="tab-navigation">
-              <button 
+              <motion.button 
                 className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
                 onClick={() => setActiveTab('dashboard')}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
                 <Folder size={18} />Dashboard
-              </button>
-              <button 
+              </motion.button>
+              <motion.button 
                 className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
                 onClick={() => setActiveTab('analytics')}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
                 <BarChart3 size={18} />Analytics
-              </button>
+              </motion.button>
             </div>
           )}
         </header>
 
-        {error && (
-          <div className="error-banner">
-            <span><AlertTriangle size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />{error}</span>
-            <button onClick={() => fetchDashboardData()}>Retry</button>
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {error && (
+            <motion.div 
+              className="error-banner"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <span><AlertTriangle size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />{error}</span>
+              <button onClick={() => fetchDashboardData()}>Retry</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Unified Dashboard Content */}
-        {dashboardData && activeTab === 'dashboard' && (
-          <div className="unified-content">
-            {/* Balance Display */}
-            <div className="balance-section">
-              <p className="page-title">Your Balance</p>
-              <h1 className="balance-amount">
-                {selectedCurrency === 'USD' ? '$' : ''}{balances[selectedCurrency].toFixed(2)} {selectedCurrency === 'LIL' ? 'LIL' : ''}
-              </h1>
-              <div className="currency-pills">
-                <button 
-                  className={`currency-pill ${selectedCurrency === 'USD' ? 'active' : ''}`}
-                  onClick={() => setSelectedCurrency('USD')}
+        <AnimatePresence mode="wait">
+          {dashboardData && activeTab === 'dashboard' && (
+            <motion.div 
+              className="unified-content"
+              key="dashboard"
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={fadeInUp}
+              transition={{ duration: 0.4 }}
+            >
+              {/* Balance Display */}
+              <motion.div 
+                className="balance-section"
+                variants={scaleIn}
+                initial="initial"
+                animate="animate"
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <motion.p 
+                  className="page-title"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
                 >
-                  USD
-                </button>
-                <button 
-                  className={`currency-pill ${selectedCurrency === 'LIL' ? 'active' : ''}`}
-                  onClick={() => setSelectedCurrency('LIL')}
+                  Your Balance
+                </motion.p>
+                <motion.h1 
+                  className="balance-amount"
+                  key={selectedCurrency}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
                 >
-                  LIL
-                </button>
-              </div>
-            </div>
+                  {selectedCurrency === 'USD' ? '$' : ''}{balances[selectedCurrency].toFixed(2)} {selectedCurrency === 'LIL' ? 'LIL' : ''}
+                </motion.h1>
+                <div className="currency-pills">
+                  <motion.button 
+                    className={`currency-pill ${selectedCurrency === 'USD' ? 'active' : ''}`}
+                    onClick={() => setSelectedCurrency('USD')}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  >
+                    USD
+                  </motion.button>
+                  <motion.button 
+                    className={`currency-pill ${selectedCurrency === 'LIL' ? 'active' : ''}`}
+                    onClick={() => setSelectedCurrency('LIL')}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  >
+                    LIL
+                  </motion.button>
+                </div>
+              </motion.div>
 
             {/* Savings Goals Section */}
-            <section className="dashboard-section" data-section="goals">
-              <div className="section-title-wrapper clickable" onClick={() => toggleSection('goals')}>
+            <motion.section 
+              className="dashboard-section" 
+              data-section="goals"
+              variants={fadeInUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.2 }}
+            >
+              <motion.div 
+                className="section-title-wrapper clickable" 
+                onClick={() => toggleSection('goals')}
+                whileHover={{ x: 5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <h2 className="section-title"><Target size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Savings Goals</h2>
                 <div className="section-header-right">
                   <div className="section-meta">
                     <span className="highlight">{dashboardData.summary.active_goals}</span> active ·
                     <span className="highlight"> {dashboardData.summary.completed_goals}</span> completed
                   </div>
-                  <span className="collapse-icon">
-                    {collapsedSections['goals'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-                  </span>
+                  <motion.span 
+                    className="collapse-icon"
+                    animate={{ rotate: collapsedSections['goals'] ? 0 : 180 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ChevronDown size={20} />
+                  </motion.span>
                 </div>
-              </div>
-              {!collapsedSections['goals'] && (dashboardData.savings_goals.length > 0 ? (
-                <div className="goals-grid">
-                  {dashboardData.savings_goals.map((goal, index) => (
-                    <div key={goal.id} className={`goal-card ${goal.is_completed ? 'completed' : ''}`} style={{ animationDelay: `${index * 50}ms` }}>
+              </motion.div>
+              <AnimatePresence>
+                {!collapsedSections['goals'] && (dashboardData.savings_goals.length > 0 ? (
+                  <motion.div 
+                    className="goals-grid"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {dashboardData.savings_goals.map((goal, index) => (
+                      <motion.div 
+                        key={goal.id} 
+                        className={`goal-card ${goal.is_completed ? 'completed' : ''}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        whileHover={{ scale: 1.02, y: -5 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
                       <div className="goal-name">{goal.name}</div>
                       {goal.category && <div className="goal-category">{goal.category}</div>}
                       <div className="goal-progress">
                         <div className="progress-bar">
-                          <div
+                          <motion.div
                             className="progress-fill"
-                            style={{ width: `${calculateProgress(goal.current_amount, goal.target_amount)}%` }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${calculateProgress(goal.current_amount, goal.target_amount)}%` }}
+                            transition={{ duration: 1, delay: index * 0.1 + 0.3, ease: "easeOut" }}
                           />
                         </div>
                         <div className="progress-text">
@@ -465,34 +574,71 @@ function App() {
                       <div className="goal-deadline">
                         {calculateDeadlineDue(goal.deadline)}
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No savings goals yet</p>
-                  <p className="hint">Ask Nim to help you set a savings goal!</p>
-                </div>
-              ))}
-            </section>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    className="empty-state"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No savings goals yet</p>
+                    <p className="hint">Ask Nim to help you set a savings goal!</p>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.section>
 
             {/* Budgets Section */}
-            <section className="dashboard-section" data-section="budgets">
-              <div className="section-title-wrapper clickable" onClick={() => toggleSection('budgets')}>
+            <motion.section 
+              className="dashboard-section" 
+              data-section="budgets"
+              variants={fadeInUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.3 }}
+            >
+              <motion.div 
+                className="section-title-wrapper clickable" 
+                onClick={() => toggleSection('budgets')}
+                whileHover={{ x: 5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <h2 className="section-title"><Wallet size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Budgets</h2>
                 <div className="section-header-right">
                   <div className="section-meta">
                     <span className="highlight">{dashboardData.summary.active_budgets}</span> active
                   </div>
-                  <span className="collapse-icon">
-                    {collapsedSections['budgets'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-                  </span>
+                  <motion.span 
+                    className="collapse-icon"
+                    animate={{ rotate: collapsedSections['budgets'] ? 0 : 180 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ChevronDown size={20} />
+                  </motion.span>
                 </div>
-              </div>
-              {!collapsedSections['budgets'] && (dashboardData.budgets.length > 0 ? (
-                <div className="budgets-grid">
-                  {dashboardData.budgets.map((budget, index) => (
-                    <div key={budget.id} className={`budget-card ${budget.is_active ? 'active' : 'inactive'}`} style={{ animationDelay: `${index * 50}ms` }}>
+              </motion.div>
+              <AnimatePresence>
+                {!collapsedSections['budgets'] && (dashboardData.budgets.length > 0 ? (
+                  <motion.div 
+                    className="budgets-grid"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {dashboardData.budgets.map((budget, index) => (
+                      <motion.div 
+                        key={budget.id} 
+                        className={`budget-card ${budget.is_active ? 'active' : 'inactive'}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        whileHover={{ scale: 1.02, y: -5 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
                       <div className="budget-header">
                         <span className="budget-name">{budget.name}</span>
                       </div>
@@ -504,36 +650,75 @@ function App() {
                       <div className="budget-period">
                         {formatDate(budget.start_date)} - {formatDate(budget.end_date)}
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <p><Wallet size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No budgets set</p>
-                  <p className="hint">Ask Nim to help you create a budget!</p>
-                </div>
-              ))}
-            </section>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    className="empty-state"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <p><Wallet size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No budgets set</p>
+                    <p className="hint">Ask Nim to help you create a budget!</p>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.section>
 
             {/* Horizontal Layout: Subscriptions and Transactions */}
-            <div className="horizontal-sections">
+            <motion.div 
+              className="horizontal-sections"
+              variants={staggerContainer}
+              initial="initial"
+              animate="animate"
+            >
               {/* Subscriptions Section */}
-              <section className="dashboard-section half-width" data-section="subscriptions">
-                <div className="section-title-wrapper clickable" onClick={() => toggleSection('subscriptions')}>
+              <motion.section 
+                className="dashboard-section half-width" 
+                data-section="subscriptions"
+                variants={slideIn}
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <motion.div 
+                  className="section-title-wrapper clickable" 
+                  onClick={() => toggleSection('subscriptions')}
+                  whileHover={{ x: 5 }}
+                >
                   <h2 className="section-title"><Smartphone size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Subscriptions</h2>
                   <div className="section-header-right">
                     <div className="section-meta">
                       Total: <span className="highlight">${formatNumber(dashboardData.summary.monthly_subscription_cost)}/month</span>
                     </div>
-                    <span className="collapse-icon">
-                      {collapsedSections['subscriptions'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-                    </span>
+                    <motion.span 
+                      className="collapse-icon"
+                      animate={{ rotate: collapsedSections['subscriptions'] ? 0 : 180 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ChevronDown size={20} />
+                    </motion.span>
                   </div>
-                </div>
-                {!collapsedSections['subscriptions'] && (dashboardData.subscriptions.length > 0 ? (
-                  <div className="subscriptions-list">
-                    {dashboardData.subscriptions.map((sub, index) => (
-                      <div key={sub.id} className="subscription-card" style={{ animationDelay: `${index * 50}ms` }}>
+                </motion.div>
+                <AnimatePresence>
+                  {!collapsedSections['subscriptions'] && (dashboardData.subscriptions.length > 0 ? (
+                    <motion.div 
+                      className="subscriptions-list"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {dashboardData.subscriptions.map((sub, index) => (
+                        <motion.div 
+                          key={sub.id} 
+                          className="subscription-card"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ scale: 1.02, x: 5 }}
+                        >
                         <div className="sub-details">
                           <div className="sub-name-row">
                             <span className="sub-name">{sub.name.replace(' subscription', '')}</span>
@@ -547,33 +732,58 @@ function App() {
                           <span className="amount">{formatCurrency(sub.amount, sub.currency)}</span>
                           <span className="frequency">{getFrequencyLabel(sub.frequency)}</span>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <p><Smartphone size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No subscriptions tracked yet</p>
-                    <p className="hint">Ask Nim to help you track a subscription!</p>
-                  </div>
-                ))}
-              </section>
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      className="empty-state"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <p><Smartphone size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No subscriptions tracked yet</p>
+                      <p className="hint">Ask Nim to help you track a subscription!</p>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.section>
 
               {/* Transactions Section */}
-              <section className="dashboard-section half-width" data-section="transactions">
-                <div className="section-title-wrapper clickable" onClick={() => toggleSection('transactions')}>
+              <motion.section 
+                className="dashboard-section half-width" 
+                data-section="transactions"
+                variants={slideIn}
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <motion.div 
+                  className="section-title-wrapper clickable" 
+                  onClick={() => toggleSection('transactions')}
+                  whileHover={{ x: 5 }}
+                >
                   <h2 className="section-title"><Banknote size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Recent Transactions</h2>
                   <div className="section-header-right">
                     <div className="section-actions">
                       <div className="filter-dropdown" onClick={(e) => e.stopPropagation()}>
-                        <button 
+                        <motion.button 
                           className={`filter-trigger ${txFilter !== 'all' ? 'has-filter' : ''}`}
                           onClick={() => setShowTxFilter(!showTxFilter)}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
                         >
                           <Filter size={16} />
                           {txFilter !== 'all' && <span className="filter-badge">{txFilter === 'credit' ? 'In' : 'Out'}</span>}
-                        </button>
-                        {showTxFilter && (
-                          <div className="filter-menu">
+                        </motion.button>
+                        <AnimatePresence>
+                          {showTxFilter && (
+                            <motion.div 
+                              className="filter-menu"
+                              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                              transition={{ duration: 0.2 }}
+                            >
                             <button 
                               className={`filter-option ${txFilter === 'all' ? 'active' : ''}`}
                               onClick={() => { setTxFilter('all'); setShowTxFilter(false); }}
@@ -592,22 +802,42 @@ function App() {
                             >
                               <ArrowUp size={14} /> Sent
                             </button>
-                          </div>
-                        )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
-                    <span className="collapse-icon">
-                      {collapsedSections['transactions'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-                    </span>
+                    <motion.span 
+                      className="collapse-icon"
+                      animate={{ rotate: collapsedSections['transactions'] ? 0 : 180 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ChevronDown size={20} />
+                    </motion.span>
                   </div>
-                </div>
-                {!collapsedSections['transactions'] && (dashboardData.transactions.length > 0 ? (
-                  <div className="transactions-list">
+                </motion.div>
+                <AnimatePresence>
+                  {!collapsedSections['transactions'] && (dashboardData.transactions.length > 0 ? (
+                    <motion.div 
+                      className="transactions-list"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
                     {dashboardData.transactions
                       .filter(tx => txFilter === 'all' || tx.direction === txFilter)
                       .slice(0, 10)
                       .map((tx, index) => (
-                      <div key={tx.id} className="transaction-item" style={{ animationDelay: `${index * 30}ms` }}>
+                      <motion.div 
+                        key={tx.id} 
+                        className="transaction-item"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ scale: 1.02, x: 5 }}
+                        layout
+                      >
                         <div className={`tx-direction ${tx.direction}`}>
                           {getDirectionIcon(tx.direction)}
                         </div>
@@ -623,29 +853,51 @@ function App() {
                         <div className={`tx-status ${getStatusColor(tx.status)}`}>
                           {tx.status}
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <p><Banknote size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No transactions yet</p>
-                    <p className="hint">Your transaction history will appear here</p>
-                  </div>
-                ))}
-              </section>
-            </div>
-          </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      className="empty-state"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <p><Banknote size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No transactions yet</p>
+                      <p className="hint">Your transaction history will appear here</p>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.section>
+            </motion.div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {/* Analytics Tab */}
-        {dashboardData && activeTab === 'analytics' && (
-          <div className="unified-content analytics-view">
-            {/* Expenses by Category - Pie Chart */}
-            <section className="dashboard-section analytics-section">
-              <div className="section-title-wrapper">
-                <h2 className="section-title"><PiggyBank size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Expenses by Category</h2>
-              </div>
-              <div className="chart-container pie-chart">
+        <AnimatePresence mode="wait">
+          {dashboardData && activeTab === 'analytics' && (
+            <motion.div 
+              className="unified-content analytics-view"
+              key="analytics"
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={fadeInUp}
+              transition={{ duration: 0.4 }}
+            >
+              {/* Expenses by Category - Pie Chart */}
+              <motion.section 
+                className="dashboard-section analytics-section"
+                variants={scaleIn}
+                initial="initial"
+                animate="animate"
+                transition={{ delay: 0.1 }}
+              >
+                <div className="section-title-wrapper">
+                  <h2 className="section-title"><PiggyBank size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Expenses by Category</h2>
+                </div>
+                <div className="chart-container pie-chart">
                 {getExpensesByCategory().length > 0 ? (
                   <div className="pie-chart-wrapper">
                     <svg viewBox="0 0 200 200" className="pie-svg">
@@ -696,15 +948,25 @@ function App() {
                     </div>
                   </div>
                 ) : (
-                  <div className="empty-state">
+                  <motion.div 
+                    className="empty-state"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
                     <p>No expense data available</p>
-                  </div>
+                  </motion.div>
                 )}
               </div>
-            </section>
+            </motion.section>
 
             {/* Spending Over Time - Line Chart */}
-            <section className="dashboard-section analytics-section">
+            <motion.section 
+              className="dashboard-section analytics-section"
+              variants={fadeInUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.2 }}
+            >
               <div className="section-title-wrapper">
                 <h2 className="section-title"><TrendingDown size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Spending Trend (6 Months)</h2>
               </div>
@@ -802,28 +1064,52 @@ function App() {
                     </svg>
                   </div>
                 ) : (
-                  <div className="empty-state">
+                  <motion.div 
+                    className="empty-state"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
                     <p>No spending data available</p>
-                  </div>
+                  </motion.div>
                 )}
               </div>
-            </section>
+            </motion.section>
 
             {/* Goal Timeline */}
-            <section className="dashboard-section analytics-section">
+            <motion.section 
+              className="dashboard-section analytics-section"
+              variants={fadeInUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.2 }}
+            >
               <div className="section-title-wrapper">
                 <h2 className="section-title"><Target size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Goal Timeline</h2>
               </div>
               <div className="goal-timeline">
                 {getGoalTimeline().length > 0 ? (
-                  <div className="timeline-wrapper">
+                  <motion.div 
+                    className="timeline-wrapper"
+                    variants={staggerContainer}
+                    initial="initial"
+                    animate="animate"
+                  >
                     {getGoalTimeline().map((goal, i) => (
-                      <div key={i} className="timeline-item">
-                        <div className="timeline-marker" style={{ 
-                          background: goal.progress >= 75 ? '#22C55E' : goal.progress >= 50 ? '#FF6D00' : '#9BC1F3' 
-                        }}>
+                      <motion.div 
+                        key={i} 
+                        className="timeline-item"
+                        variants={slideIn}
+                        whileHover={{ x: 5 }}
+                      >
+                        <motion.div 
+                          className="timeline-marker" 
+                          style={{ 
+                            background: goal.progress >= 75 ? '#22C55E' : goal.progress >= 50 ? '#FF6D00' : '#9BC1F3' 
+                          }}
+                          whileHover={{ scale: 1.1 }}
+                        >
                           <Target size={16} />
-                        </div>
+                        </motion.div>
                         <div className="timeline-content">
                           <div className="timeline-header">
                             <h4>{goal.name}</h4>
@@ -831,7 +1117,12 @@ function App() {
                           </div>
                           <div className="timeline-progress">
                             <div className="progress-bar">
-                              <div className="progress-fill" style={{ width: `${goal.progress}%` }} />
+                              <motion.div 
+                                className="progress-fill"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${goal.progress}%` }}
+                                transition={{ duration: 1, delay: i * 0.1 }}
+                              />
                             </div>
                             <span className="progress-label">
                               ${formatNumber(goal.current)} / ${formatNumber(goal.target)} ({goal.progress.toFixed(0)}%)
@@ -841,43 +1132,71 @@ function App() {
                             {calculateDeadlineDue(goal.deadline.toISOString())}
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 ) : (
-                  <div className="empty-state">
+                  <motion.div 
+                    className="empty-state"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
                     <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No active goals with deadlines</p>
                     <p className="hint">Set goals with target dates to see your timeline!</p>
-                  </div>
+                  </motion.div>
                 )}
               </div>
-            </section>
+            </motion.section>
 
             {/* Export Reports */}
-            <section className="dashboard-section analytics-section">
+            <motion.section 
+              className="dashboard-section analytics-section"
+              variants={fadeInUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.3 }}
+            >
               <div className="section-title-wrapper">
                 <h2 className="section-title"><Folder size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Export Reports</h2>
               </div>
               <div className="export-actions">
-                <button className="export-btn" onClick={exportReport}>
+                <motion.button 
+                  className="export-btn" 
+                  onClick={exportReport}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
                   <Folder size={18} />
                   <div className="export-content">
                     <h4>Generate PDF Report</h4>
                     <p>Export {new Date().toLocaleDateString('en-US', { month: 'long' })}'s spending summary</p>
                   </div>
-                </button>
+                </motion.button>
               </div>
-            </section>
-          </div>
+            </motion.section>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {/* Loading State */}
-        {isLoading && !dashboardData && (
-          <div className="loading-state">
-            <div className="spinner"></div>
-            <p>Loading dashboard...</p>
-          </div>
-        )}
+        <AnimatePresence>
+          {isLoading && !dashboardData && (
+            <motion.div 
+              className="loading-state"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div 
+                className="spinner"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              ></motion.div>
+              <p>Loading dashboard...</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       <NimChat
