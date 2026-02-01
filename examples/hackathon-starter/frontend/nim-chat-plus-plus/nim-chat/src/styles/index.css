@@ -87,10 +87,14 @@
 
 /* Animation for thinking indicator */
 @keyframes nim-bounce {
-  0%, 80%, 100% {
+
+  0%,
+  80%,
+  100% {
     transform: scale(0.8);
     opacity: 0.5;
   }
+
   40% {
     transform: scale(1);
     opacity: 1;
@@ -119,6 +123,7 @@
     opacity: 0;
     transform: translateY(20px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -134,6 +139,7 @@
   from {
     stroke-dashoffset: 0;
   }
+
   to {
     stroke-dashoffset: 100;
   }
@@ -144,7 +150,7 @@
   margin: 0;
 }
 
-.nim-message-content p + p {
+.nim-message-content p+p {
   margin-top: 0.5rem;
 }
 
@@ -186,4 +192,66 @@
 
 .nim-message-content strong {
   font-weight: 600;
+}
+
+/* Premium Tag Styles - Modern & Minimal */
+@keyframes nim-glow-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(218, 165, 32, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 8px 2px rgba(218, 165, 32, 0.15);
+  }
+}
+
+@keyframes nim-subtle-shine {
+  0% {
+    background-position: -100% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.nim-premium-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: linear-gradient(135deg,
+      rgba(218, 165, 32, 0.08) 0%,
+      rgba(218, 165, 32, 0.12) 50%,
+      rgba(218, 165, 32, 0.08) 100%);
+  background-size: 200% 100%;
+  color: #B8860B;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(218, 165, 32, 0.25);
+  margin-left: 8px;
+  vertical-align: middle;
+  cursor: default;
+  user-select: none;
+  animation: nim-subtle-shine 8s ease-in-out infinite, nim-glow-pulse 3s ease-in-out infinite;
+  transition: all 0.2s ease;
+}
+
+.nim-premium-tag:hover {
+  background: linear-gradient(135deg,
+      rgba(218, 165, 32, 0.12) 0%,
+      rgba(218, 165, 32, 0.18) 50%,
+      rgba(218, 165, 32, 0.12) 100%);
+  border-color: rgba(218, 165, 32, 0.35);
+}
+
+.nim-premium-tag svg {
+  color: #DAA520;
+  width: 11px;
+  height: 11px;
 }

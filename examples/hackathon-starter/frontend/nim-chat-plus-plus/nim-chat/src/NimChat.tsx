@@ -129,6 +129,16 @@ export function NimChat({
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [jwt, setJwt] = useState<string | null>(null);
+  const [attachedTransaction, setAttachedTransaction] = useState<{
+    id: string;
+    amount: string;
+    currency: string;
+    direction: string;
+    note: string;
+    type: string;
+    counterparty: string;
+    created_at: string;
+  } | null>(null);
 
   // Calculate initial position based on screen size
   const getInitialPosition = () => ({
@@ -184,6 +194,17 @@ export function NimChat({
     jwt: isAuthenticated ? jwt : null,
     onError: (error) => console.error('[NimChat]', error),
   });
+
+  // Handle sending message with attached transaction
+  const handleSendMessage = (content: string) => {
+    if (attachedTransaction) {
+      const txContext = `[Transaction Context: ${attachedTransaction.note || attachedTransaction.type + ' transaction'} - ${attachedTransaction.direction === 'credit' ? '+' : ''}${attachedTransaction.amount} ${attachedTransaction.currency}, ID: ${attachedTransaction.id}, Date: ${attachedTransaction.created_at}]`;
+      sendMessage(`${txContext}\n\n${content}`);
+      setAttachedTransaction(null);
+    } else {
+      sendMessage(content);
+    }
+  };
 
   // Resize handles component
   const ResizeHandles = () => (
@@ -270,12 +291,15 @@ export function NimChat({
                 isStreaming={isStreaming}
                 connectionState={connectionState}
                 confirmationRequest={confirmationRequest}
-                onSendMessage={sendMessage}
+                onSendMessage={handleSendMessage}
                 onConfirm={confirmAction}
                 onCancel={cancelAction}
                 onClose={() => setIsOpen(false)}
                 onLogout={handleLogout}
                 onClearMessages={clearMessages}
+                attachedTransaction={attachedTransaction}
+                onAttachTransaction={setAttachedTransaction}
+                onRemoveAttachment={() => setAttachedTransaction(null)}
               />
             </div>
           </div>

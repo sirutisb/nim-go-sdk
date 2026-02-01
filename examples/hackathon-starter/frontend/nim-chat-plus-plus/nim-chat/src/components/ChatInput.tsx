@@ -132,16 +132,32 @@ function AnonAvatar({ size = 32 }: { size?: number }) {
   );
 }
 
+// Transaction type for attached transaction
+interface AttachedTransaction {
+  id: string;
+  amount: string;
+  currency: string;
+  direction: string;
+  note: string;
+  type: string;
+  counterparty: string;
+  created_at: string;
+}
+
 interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  attachedTransaction?: AttachedTransaction | null;
+  onRemoveAttachment?: () => void;
 }
 
 export function ChatInput({
   onSend,
   disabled = false,
   placeholder = 'Type a message...',
+  attachedTransaction,
+  onRemoveAttachment,
 }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [showMentions, setShowMentions] = useState(false);
@@ -277,53 +293,90 @@ export function ChatInput({
   }, []);
 
   return (
-    <form onSubmit={handleSubmit} className="relative flex gap-2">
-      {/* Mentions dropdown */}
-      {showMentions && filteredUsers.length > 0 && (
-        <div
-          ref={mentionListRef}
-          className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto bg-white border-2 border-nim-cream rounded-lg shadow-lg z-50"
-        >
-          {filteredUsers.map((user, index) => (
-            <button
-              key={user.id}
-              type="button"
-              onClick={() => handleSelectUser(user)}
-              className={`
+    <form onSubmit={handleSubmit} className="relative flex flex-col gap-2">
+      {/* Attached Transaction Tag */}
+      {attachedTransaction && (
+        <div className="attached-transaction-tag flex items-center gap-2 px-3 py-2 bg-nim-cream rounded-lg border-2 border-nim-orange/30">
+          <div className="flex-1 flex items-center gap-2">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${attachedTransaction.direction === 'credit' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+              }`}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                {attachedTransaction.direction === 'credit'
+                  ? <path d="M12 19V5M5 12l7-7 7 7" />
+                  : <path d="M12 5v14M5 12l7 7 7-7" />
+                }
+              </svg>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-body text-sm font-medium text-nim-black">
+                {attachedTransaction.note || `${attachedTransaction.type} transaction`}
+              </span>
+              <span className="font-body text-xs text-nim-brown/60">
+                {attachedTransaction.direction === 'credit' ? '+' : ''}{attachedTransaction.amount} {attachedTransaction.currency} · Transaction
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onRemoveAttachment}
+            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-nim-orange/10 text-nim-brown/60 hover:text-nim-orange transition-colors"
+            aria-label="Remove attachment"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      <div className="relative flex gap-2">
+        {/* Mentions dropdown */}
+        {showMentions && filteredUsers.length > 0 && (
+          <div
+            ref={mentionListRef}
+            className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto bg-white border-2 border-nim-cream rounded-lg shadow-lg z-50"
+          >
+            {filteredUsers.map((user, index) => (
+              <button
+                key={user.id}
+                type="button"
+                onClick={() => handleSelectUser(user)}
+                className={`
                 w-full flex items-center gap-3 px-3 py-2.5
                 text-left transition-colors
                 ${index === selectedMentionIndex
-                  ? 'bg-nim-orange/10 text-nim-orange'
-                  : 'hover:bg-nim-cream text-nim-black'
-                }
+                    ? 'bg-nim-orange/10 text-nim-orange'
+                    : 'hover:bg-nim-cream text-nim-black'
+                  }
               `}
-            >
-              <AnonAvatar size={28} />
-              <div className="flex flex-col">
-                <span className="font-body text-sm font-medium">{user.displayName}</span>
-                <span className="font-body text-xs text-nim-brown/60">@{user.username}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+              >
+                <AnonAvatar size={28} />
+                <div className="flex flex-col">
+                  <span className="font-body text-sm font-medium">{user.displayName}</span>
+                  <span className="font-body text-xs text-nim-brown/60">@{user.username}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
-      {/* No matches message */}
-      {showMentions && mentionQuery && filteredUsers.length === 0 && (
-        <div className="absolute bottom-full left-0 right-12 mb-2 px-4 py-3 bg-white border-2 border-nim-cream rounded-lg shadow-lg z-50">
-          <span className="font-body text-sm text-nim-brown/60">No users found matching "@{mentionQuery}"</span>
-        </div>
-      )}
+        {/* No matches message */}
+        {showMentions && mentionQuery && filteredUsers.length === 0 && (
+          <div className="absolute bottom-full left-0 right-12 mb-2 px-4 py-3 bg-white border-2 border-nim-cream rounded-lg shadow-lg z-50">
+            <span className="font-body text-sm text-nim-brown/60">No users found matching "@{mentionQuery}"</span>
+          </div>
+        )}
 
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        disabled={disabled}
-        placeholder={placeholder}
-        className={`
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          placeholder={placeholder}
+          className={`
           flex-1 h-11 px-4
           bg-white border-2 border-nim-cream
           rounded-lg
@@ -334,11 +387,11 @@ export function ChatInput({
           focus:border-nim-orange
           disabled:opacity-50 disabled:cursor-not-allowed
         `}
-      />
-      <button
-        type="submit"
-        disabled={disabled || !value.trim()}
-        className={`
+        />
+        <button
+          type="submit"
+          disabled={disabled || !value.trim()}
+          className={`
           h-11 w-11
           bg-nim-orange text-white
           rounded-lg
@@ -348,22 +401,23 @@ export function ChatInput({
           active:scale-95
           disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100
         `}
-        aria-label="Send message"
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          aria-label="Send message"
         >
-          <line x1="22" y1="2" x2="11" y2="13" />
-          <polygon points="22 2 15 22 11 13 2 9 22 2" />
-        </svg>
-      </button>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+        </button>
+      </div>
     </form>
   );
 }

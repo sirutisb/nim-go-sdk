@@ -1093,6 +1093,7 @@ body {
     text-align: left;
   }
 }
+
 /* Tab Navigation */
 .tab-navigation {
   display: flex;
@@ -1360,7 +1361,7 @@ body {
     width: 200px;
     height: 200px;
   }
-  
+
   .line-svg {
     min-width: 400px;
   }
@@ -1386,6 +1387,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -1406,6 +1408,7 @@ body {
     opacity: 0;
     transform: translateY(20px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1428,10 +1431,13 @@ body {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.8;
     transform: scale(1.05);
@@ -1486,12 +1492,10 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.3) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%);
   animation: shimmer 1.5s infinite;
 }
 
@@ -1499,6 +1503,7 @@ body {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -1556,4 +1561,58 @@ body {
   font-size: 1rem;
   color: var(--green);
   font-weight: 500;
+}
+
+/* Drag and Drop Styles */
+.transaction-item[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+}
+
+.transaction-item[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.transaction-item.dragging {
+  opacity: 0.6;
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 2px dashed var(--orange);
+  background: rgba(255, 109, 0, 0.1);
+}
+
+/* Drop zone animation */
+@keyframes dropZonePulse {
+
+  0%,
+  100% {
+    border-color: var(--orange);
+    background: rgba(255, 109, 0, 0.08);
+  }
+
+  50% {
+    border-color: #ff8533;
+    background: rgba(255, 109, 0, 0.15);
+  }
+}
+
+.drag-over {
+  animation: dropZonePulse 1s ease-in-out infinite;
+}
+
+/* Attached transaction tag styles */
+.attached-transaction-tag {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -1,10 +1,22 @@
-import { useRef, useEffect, useState } from 'react';
-import { Wallet, Search, Users } from 'lucide-react';
+import { useRef, useEffect, useState, DragEvent } from 'react';
+import { Wallet, Search, Users, ArrowDownToLine, Crown } from 'lucide-react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { ConfirmationCard } from './ConfirmationCard';
 import type { Message, ConfirmationRequest, ConnectionState } from '../types';
+
+// Transaction type for attached transaction
+interface AttachedTransaction {
+  id: string;
+  amount: string;
+  currency: string;
+  direction: string;
+  note: string;
+  type: string;
+  counterparty: string;
+  created_at: string;
+}
 
 interface ChatPanelProps {
   title: string;
@@ -18,6 +30,9 @@ interface ChatPanelProps {
   onClose: () => void;
   onLogout?: () => void;
   onClearMessages?: () => void;
+  attachedTransaction?: AttachedTransaction | null;
+  onAttachTransaction?: (tx: AttachedTransaction) => void;
+  onRemoveAttachment?: () => void;
 }
 
 export function ChatPanel({
@@ -32,9 +47,59 @@ export function ChatPanel({
   onClose,
   onLogout,
   onClearMessages,
+  attachedTransaction,
+  onAttachTransaction,
+  onRemoveAttachment,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [personality, setPersonality] = useState('professional');
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  // Drag and drop handlers
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes('application/json')) {
+      e.dataTransfer.dropEffect = 'copy';
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes('application/json')) {
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set to false if leaving the panel entirely
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    try {
+      const data = e.dataTransfer.getData('application/json');
+      if (data && onAttachTransaction) {
+        const transaction = JSON.parse(data);
+        onAttachTransaction(transaction);
+      }
+    } catch (error) {
+      console.error('Failed to parse dropped transaction:', error);
+    }
+  };
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -47,11 +112,35 @@ export function ChatPanel({
   const hasError = connectionState === 'error';
 
   return (
-    <div className="nim-panel-enter flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden">
+    <div
+      className={`nim-panel-enter flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden relative ${isDragOver ? 'drag-over' : ''}`}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drop Zone Overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 z-50 bg-nim-orange/10 border-2 border-dashed border-nim-orange rounded-xl flex items-center justify-center backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-2 text-nim-orange">
+            <ArrowDownToLine size={32} className="animate-bounce" />
+            <span className="font-display text-lg font-medium">Drop transaction here</span>
+            <span className="font-body text-sm text-nim-brown/60">Release to attach to message</span>
+          </div>
+        </div>
+      )}
       {/* Header - Drag Handle */}
       <div className="flex flex-col px-5 py-4 bg-white border-b border-nim-cream" data-drag-handle>
         <div className="flex items-center justify-between mb-3 cursor-move">
-          <h2 className="font-display text-xl font-medium text-nim-black select-none">{title}</h2>
+          <h2 className="font-display text-xl font-medium text-nim-black select-none flex items-center">
+            {title}
+            {title === 'Nim++' && (
+              <span className="nim-premium-tag">
+                <Crown size={12} fill="currentColor" />
+                premium
+              </span>
+            )}
+          </h2>
           <div className="flex items-center gap-2">
             {onClearMessages && messages.length > 0 && (
               <button
@@ -200,6 +289,8 @@ export function ChatPanel({
                       ? 'Waiting for confirmation...'
                       : 'Type a message...'
           }
+          attachedTransaction={attachedTransaction}
+          onRemoveAttachment={onRemoveAttachment}
         />
       </div>
     </div>

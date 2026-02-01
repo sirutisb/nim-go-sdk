@@ -454,13 +454,13 @@ function App() {
                 {selectedCurrency === 'USD' ? '$' : ''}{balances[selectedCurrency].toFixed(2)} {selectedCurrency === 'LIL' ? 'LIL' : ''}
               </h1>
               <div className="currency-pills">
-                <button 
+                <button
                   className={`currency-pill ${selectedCurrency === 'USD' ? 'active' : ''}`}
                   onClick={() => setSelectedCurrency('USD')}
                 >
                   USD
                 </button>
-                <button 
+                <button
                   className={`currency-pill ${selectedCurrency === 'LIL' ? 'active' : ''}`}
                   onClick={() => setSelectedCurrency('LIL')}
                 >
@@ -645,7 +645,20 @@ function App() {
                       .filter(tx => txFilter === 'all' || tx.direction === txFilter)
                       .slice(0, 10)
                       .map((tx, index) => (
-                        <div key={tx.id} className="transaction-item" style={{ animationDelay: `${index * 30}ms` }}>
+                        <div
+                          key={tx.id}
+                          className="transaction-item"
+                          style={{ animationDelay: `${index * 30}ms` }}
+                          draggable="true"
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('application/json', JSON.stringify(tx));
+                            e.dataTransfer.effectAllowed = 'copy';
+                            (e.target as HTMLElement).classList.add('dragging');
+                          }}
+                          onDragEnd={(e) => {
+                            (e.target as HTMLElement).classList.remove('dragging');
+                          }}
+                        >
                           <div className={`tx-direction ${tx.direction}`}>
                             {getDirectionIcon(tx.direction)}
                           </div>
