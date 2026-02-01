@@ -44,6 +44,7 @@ export function NimChat({
     sendMessage,
     confirmAction,
     cancelAction,
+    clearMessages,
   } = useNimWebSocket({
     wsUrl,
     jwt: isAuthenticated ? jwt : null,
@@ -93,6 +94,7 @@ export function NimChat({
             onCancel={cancelAction}
             onClose={() => setIsOpen(false)}
             onLogout={handleLogout}
+            onClearMessages={clearMessages}
           />
         </div>
       )}

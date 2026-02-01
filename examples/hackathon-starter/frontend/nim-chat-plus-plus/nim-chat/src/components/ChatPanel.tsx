@@ -16,6 +16,7 @@ interface ChatPanelProps {
   onCancel: (actionId: string) => void;
   onClose: () => void;
   onLogout?: () => void;
+  onClearMessages?: () => void;
 }
 
 export function ChatPanel({
@@ -29,6 +30,7 @@ export function ChatPanel({
   onCancel,
   onClose,
   onLogout,
+  onClearMessages,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [personality, setPersonality] = useState('professional');
@@ -50,6 +52,16 @@ export function ChatPanel({
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-xl font-medium text-nim-black">{title}</h2>
           <div className="flex items-center gap-2">
+            {onClearMessages && messages.length > 0 && (
+              <button
+                onClick={onClearMessages}
+                className="px-3 py-1.5 text-xs rounded-lg bg-nim-cream hover:bg-nim-orange/10 text-nim-black hover:text-nim-orange font-body transition-colors"
+                aria-label="Clear chat"
+                title="Clear chat history"
+              >
+                Clear
+              </button>
+            )}
             {onLogout && (
               <button
                 onClick={onLogout}
@@ -122,11 +134,26 @@ export function ChatPanel({
             <p className="font-body text-sm text-nim-brown/60 mb-4">Ask me anything about your finances</p>
             <div className="space-y-2 text-sm text-left bg-nim-cream rounded-lg p-4">
               <p className="font-display font-medium text-nim-black mb-2">Try asking:</p>
-              <ul className="space-y-1.5 font-body text-nim-brown/60">
-                <li>• "What's my balance?"</li>
-                <li>• "Show me recent transactions"</li>
-                <li>• "Analyze my spending for last 30 days"</li>
-              </ul>
+              <div className="space-y-2 font-body">
+                <button
+                  onClick={() => onSendMessage("What's my balance?")}
+                  className="w-full text-left px-3 py-2 rounded-lg bg-white hover:bg-nim-orange/10 text-nim-brown/80 hover:text-nim-orange transition-colors border border-nim-cream hover:border-nim-orange/30"
+                >
+                  💰 What's my balance?
+                </button>
+                <button
+                  onClick={() => onSendMessage("Show me recent transactions")}
+                  className="w-full text-left px-3 py-2 rounded-lg bg-white hover:bg-nim-orange/10 text-nim-brown/80 hover:text-nim-orange transition-colors border border-nim-cream hover:border-nim-orange/30"
+                >
+                  📊 Show me recent transactions
+                </button>
+                <button
+                  onClick={() => onSendMessage("Analyze my spending for last 30 days")}
+                  className="w-full text-left px-3 py-2 rounded-lg bg-white hover:bg-nim-orange/10 text-nim-brown/80 hover:text-nim-orange transition-colors border border-nim-cream hover:border-nim-orange/30"
+                >
+                  📈 Analyze my spending for last 30 days
+                </button>
+              </div>
             </div>
           </div>
         )}

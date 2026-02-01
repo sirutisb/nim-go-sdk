@@ -25,6 +25,7 @@ interface UseNimWebSocketReturn {
   confirmAction: (actionId: string) => void;
   cancelAction: (actionId: string) => void;
   reconnect: () => void;
+  clearMessages: () => void;
 }
 
 export function useNimWebSocket({
@@ -289,6 +290,24 @@ export function useNimWebSocket({
     [send]
   );
 
+  const clearMessages = useCallback(() => {
+    // Clear local messages
+    setMessages([]);
+    setIsStreaming(false);
+    streamingContentRef.current = '';
+    setConfirmationRequest(null);
+
+    // Clear stored conversation and start fresh
+    localStorage.removeItem(STORAGE_KEY);
+    conversationIdRef.current = null;
+    hasResumeFailedRef.current = true;
+
+    // Start a new conversation
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      send({ type: 'new_conversation' });
+    }
+  }, [send]);
+
   // Connect when JWT is available
   useEffect(() => {
     isMountedRef.current = true;
@@ -359,5 +378,6 @@ export function useNimWebSocket({
     confirmAction,
     cancelAction,
     reconnect,
+    clearMessages,
   };
 }
