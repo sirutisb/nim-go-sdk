@@ -62,12 +62,7 @@ function App() {
 
       <NimChat
         wsUrl={wsUrl}
-<<<<<<< Updated upstream
         apiUrl={apiUrl}
-        title="Nim"
-=======
-        apiUrl={liminalApiUrl}
->>>>>>> Stashed changes
         position="bottom-right"
         defaultOpen={false}
       />
