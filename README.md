@@ -22,30 +22,17 @@ Enterprise framework for AI agents with conversation management, user confirmati
 
 ### Installation
 
+#### Backend
 ```bash
 go get github.com/becomeliminal/nim-go-sdk
+cd examples/hackathon-starter/
+go run .
 ```
-
-### Basic Setup
-
-```go
-package main
-
-import (
-    "log"
-    "github.com/becomeliminal/nim-go-sdk/server"
-)
-
-func main() {
-    srv, err := server.New(server.Config{
-        AnthropicKey: "sk-ant-...", // Required
-    })
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    srv.Run(":8080")
-}
+#### Frontend
+```bash
+cd examples/hackathon-starter/frontend
+npm install
+npm run dev
 ```
 
 ### Running
@@ -53,37 +40,8 @@ func main() {
 ```bash
 # Set API key
 export ANTHROPIC_API_KEY="sk-ant-..."
+export PERPLEXITY_API_KEY=""
 
-# Run
-go run main.go
-
-# Server starts on http://localhost:8080
-# WebSocket: ws://localhost:8080/ws
-# Health: http://localhost:8080/health
-```
-
-### Connect via WebSocket
-
-```javascript
-const ws = new WebSocket('ws://localhost:8080/ws');
-
-// Start conversation
-ws.send(JSON.stringify({type: "new_conversation"}));
-
-// Send message
-ws.send(JSON.stringify({
-    type: "message",
-    content: "What's my balance?"
-}));
-
-// Approve action
-ws.send(JSON.stringify({
-    type: "confirm",
-    action_id: "action_123"
-}));
-```
-
----
 
 ## What's Included
 
