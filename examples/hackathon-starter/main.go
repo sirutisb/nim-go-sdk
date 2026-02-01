@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -171,10 +172,15 @@ func main() {
 	log.Println("🚀 Hackathon Starter Server Running")
 	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	log.Printf("📡 WebSocket endpoint: ws://localhost:%s/ws", port)
+	log.Printf("📊 Dashboard API: http://localhost:%s/api/dashboard", port)
 	log.Printf("💚 Health check: http://localhost:%s/health", port)
 	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	log.Println("Ready for connections! Start your frontend with: cd frontend && npm run dev")
 	log.Println()
+
+	// Register dashboard API routes before starting the server
+	RegisterDashboardRoutes(http.DefaultServeMux)
+	log.Println("✅ Registered dashboard API routes")
 
 	if err := srv.Run(":" + port); err != nil {
 		log.Fatal(err)
