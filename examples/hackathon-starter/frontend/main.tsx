@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { NimChat } from '@liminalcash/nim-chat'
-import '@liminalcash/nim-chat/styles.css'
+import { NimChat } from './nim-chat-src/src/NimChat'
+import './nim-chat-src/src/styles/index.css'
 import './styles.css'
 
 function App() {
@@ -62,8 +62,12 @@ function App() {
 
       <NimChat
         wsUrl={wsUrl}
+<<<<<<< Updated upstream
         apiUrl={apiUrl}
         title="Nim"
+=======
+        apiUrl={liminalApiUrl}
+>>>>>>> Stashed changes
         position="bottom-right"
         defaultOpen={false}
       />
