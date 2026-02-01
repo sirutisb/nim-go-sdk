@@ -48,10 +48,10 @@ export function ChatPanel({
 
   return (
     <div className="nim-panel-enter flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col px-5 py-4 bg-white border-b border-nim-cream">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-xl font-medium text-nim-black">{title}</h2>
+      {/* Header - Drag Handle */}
+      <div className="flex flex-col px-5 py-4 bg-white border-b border-nim-cream" data-drag-handle>
+        <div className="flex items-center justify-between mb-3 cursor-move">
+          <h2 className="font-display text-xl font-medium text-nim-black select-none">{title}</h2>
           <div className="flex items-center gap-2">
             {onClearMessages && messages.length > 0 && (
               <button
