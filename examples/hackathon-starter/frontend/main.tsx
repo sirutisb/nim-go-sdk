@@ -5,6 +5,26 @@ import ReactDOM from 'react-dom/client'
 import { NimChat } from './nim-chat-plus-plus/nim-chat/src/NimChat'
 import './nim-chat-plus-plus/nim-chat/src/styles/index.css'
 import './styles.css'
+import {
+  AlertTriangle,
+  BarChart3,
+  CreditCard,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  Wallet,
+  PiggyBank,
+  Folder,
+  Smartphone,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowDown,
+  ArrowUp,
+  Banknote,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 
 // Types for API responses
 interface SubscriptionDTO {
@@ -86,6 +106,15 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [txFilter, setTxFilter] = useState<'all' | 'credit' | 'debit'>('all')
+  const [showTxFilter, setShowTxFilter] = useState(false)
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics'>('dashboard')
+
+  // Toggle section collapse
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }))
+  }
 
   // Fetch dashboard data
   const fetchDashboardData = useCallback(async (showRefreshIndicator = false) => {
@@ -142,7 +171,12 @@ function App() {
 
   // Format currency
   const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return `${amount.toFixed(2)} ${currency}`
+    return `${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
+  }
+
+  // Format number with thousand separators
+  const formatNumber = (num: number, decimals: number = 2) => {
+    return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
   }
 
   // Format date
@@ -162,6 +196,97 @@ function App() {
     }
   }
 
+  // Get frequency tag color class
+  const getFrequencyTagClass = (frequency: string) => {
+    switch (frequency) {
+      case 'weekly': return 'freq-tag-weekly'
+      case 'monthly': return 'freq-tag-monthly'
+      case 'yearly':
+      case 'annually': return 'freq-tag-yearly'
+      default: return 'freq-tag-monthly'
+    }
+  }
+
+  // Calculate due in time
+  const calculateDueIn = (lastPaymentDate: string, frequency: string) => {
+    if (!lastPaymentDate) return 'Due soon'
+    
+    const lastPayment = new Date(lastPaymentDate)
+    const now = new Date()
+    let nextDue: Date
+    
+    switch (frequency) {
+      case 'weekly':
+        nextDue = new Date(lastPayment)
+        nextDue.setDate(nextDue.getDate() + 7)
+        break
+      case 'monthly':
+        nextDue = new Date(lastPayment)
+        nextDue.setMonth(nextDue.getMonth() + 1)
+        break
+      case 'yearly':
+      case 'annually':
+        nextDue = new Date(lastPayment)
+        nextDue.setFullYear(nextDue.getFullYear() + 1)
+        break
+      default:
+        nextDue = new Date(lastPayment)
+        nextDue.setMonth(nextDue.getMonth() + 1)
+    }
+    
+    const diffTime = nextDue.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays < 0) {
+      return 'Overdue'
+    } else if (diffDays === 0) {
+      return 'Due today'
+    } else if (diffDays === 1) {
+      return 'Due tomorrow'
+    } else if (diffDays < 7) {
+      return `Due in ${diffDays} days`
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7)
+      return `Due in ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30)
+      return `Due in ${months} ${months === 1 ? 'month' : 'months'}`
+    } else {
+      const years = Math.floor(diffDays / 365)
+      return `Due in ${years} ${years === 1 ? 'year' : 'years'}`
+    }
+  }
+
+  // Calculate deadline due time
+  const calculateDeadlineDue = (deadline: string) => {
+    if (!deadline) return 'No deadline'
+    
+    const deadlineDate = new Date(deadline)
+    const now = new Date()
+    
+    const diffTime = deadlineDate.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays < 0) {
+      return 'Overdue'
+    } else if (diffDays === 0) {
+      return 'Due today'
+    } else if (diffDays === 1) {
+      return 'Due tomorrow'
+    } else if (diffDays < 7) {
+      return `Due in ${diffDays} days`
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7)
+      return `Due in ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30)
+      return `Due in ${months} ${months === 1 ? 'month' : 'months'}`
+    } else {
+      const years = Math.floor(diffDays / 365)
+      return `Due in ${years} ${years === 1 ? 'year' : 'years'}`
+    }
+  }
+
   // Get status color
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -174,12 +299,72 @@ function App() {
 
   // Get direction icon
   const getDirectionIcon = (direction: string) => {
-    return direction === 'credit' ? '↓' : '↑'
+    return direction === 'credit' ? <ArrowDown size={16} /> : <ArrowUp size={16} />
   }
 
   // Calculate goal progress
   const calculateProgress = (current: number, target: number) => {
     return Math.min((current / target) * 100, 100)
+  }
+
+  // Calculate expenses by category
+  const getExpensesByCategory = () => {
+    if (!dashboardData) return []
+    const categoryMap: Record<string, number> = {}
+    dashboardData.transactions
+      .filter(tx => tx.direction === 'debit')
+      .forEach(tx => {
+        const category = tx.type || 'Other'
+        categoryMap[category] = (categoryMap[category] || 0) + parseFloat(tx.amount)
+      })
+    return Object.entries(categoryMap).map(([name, value]) => ({ name, value }))
+  }
+
+  // Calculate spending over last 6 months
+  const getSpendingOverTime = () => {
+    if (!dashboardData) return []
+    const monthlySpending: Record<string, number> = {}
+    const now = new Date()
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      monthlySpending[monthKey] = 0
+    }
+
+    dashboardData.transactions
+      .filter(tx => tx.direction === 'debit')
+      .forEach(tx => {
+        const txDate = new Date(tx.created_at)
+        const monthKey = txDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        if (monthlySpending.hasOwnProperty(monthKey)) {
+          monthlySpending[monthKey] += parseFloat(tx.amount)
+        }
+      })
+
+    return Object.entries(monthlySpending).map(([month, amount]) => ({ month, amount }))
+  }
+
+  // Calculate goal timeline
+  const getGoalTimeline = () => {
+    if (!dashboardData) return []
+    return dashboardData.savings_goals
+      .filter(g => !g.is_completed && g.deadline)
+      .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
+      .map(goal => ({
+        name: goal.name,
+        deadline: new Date(goal.deadline),
+        progress: calculateProgress(goal.current_amount, goal.target_amount),
+        target: goal.target_amount,
+        current: goal.current_amount
+      }))
+  }
+
+  // Export PDF report
+  const exportReport = async () => {
+    const now = new Date()
+    const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    alert(`Generating PDF report for ${monthYear}...\n\nThis would export a comprehensive spending report with:\n- Total spending breakdown\n- Category analysis\n- Transaction history\n- Budget comparison`)
   }
 
   return (
@@ -190,89 +375,54 @@ function App() {
             <h1>Financial Dashboard</h1>
             <p className="header-subtitle">All your financial data in one place</p>
           </div>
-          <button className={`refresh-btn ${isRefreshing ? 'refreshing' : ''}`} onClick={() => fetchDashboardData()} disabled={isLoading}>
-            {isLoading ? '⟳ Loading...' : isRefreshing ? '↻ Updating...' : '↻ Refresh'}
-          </button>
+          {/* Tab Navigation */}
+          {dashboardData && (
+            <div className="tab-navigation">
+              <button 
+                className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+                onClick={() => setActiveTab('dashboard')}
+              >
+                <Folder size={18} />Dashboard
+              </button>
+              <button 
+                className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+                onClick={() => setActiveTab('analytics')}
+              >
+                <BarChart3 size={18} />Analytics
+              </button>
+            </div>
+          )}
         </header>
 
         {error && (
           <div className="error-banner">
-            <span>⚠️ {error}</span>
+            <span><AlertTriangle size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />{error}</span>
             <button onClick={() => fetchDashboardData()}>Retry</button>
           </div>
         )}
 
         {/* Unified Dashboard Content */}
-        {dashboardData && (
+        {dashboardData && activeTab === 'dashboard' && (
           <div className="unified-content">
-            {/* Summary Cards Section */}
-            <section className="dashboard-section summary-section" data-section="summary">
-              <div className="section-title-wrapper">
-                <h2 className="section-title">📊 Overview</h2>
-                <div className="section-divider"></div>
-              </div>
-              <div className="summary-grid">
-                <div className="summary-card orange">
-                  <div className="summary-icon">💳</div>
-                  <div className="summary-content">
-                    <div className="summary-label">Subscriptions</div>
-                    <div className="summary-value">{dashboardData.summary.total_subscriptions}</div>
-                    <div className="summary-subtitle">
-                      ${dashboardData.summary.monthly_subscription_cost.toFixed(2)}/month
-                    </div>
-                  </div>
-                </div>
-
-                <div className="summary-card blue">
-                  <div className="summary-icon">📈</div>
-                  <div className="summary-content">
-                    <div className="summary-label">Total Received</div>
-                    <div className="summary-value">${dashboardData.summary.total_received.toFixed(2)}</div>
-                    <div className="summary-subtitle">
-                      {dashboardData.summary.total_transactions} transactions
-                    </div>
-                  </div>
-                </div>
-
-                <div className="summary-card brown">
-                  <div className="summary-icon">📉</div>
-                  <div className="summary-content">
-                    <div className="summary-label">Total Spent</div>
-                    <div className="summary-value">${dashboardData.summary.total_spent.toFixed(2)}</div>
-                    <div className="summary-subtitle">This period</div>
-                  </div>
-                </div>
-
-                <div className="summary-card beige">
-                  <div className="summary-icon">🎯</div>
-                  <div className="summary-content">
-                    <div className="summary-label">Active Goals</div>
-                    <div className="summary-value">{dashboardData.summary.active_goals}</div>
-                    <div className="summary-subtitle">
-                      {dashboardData.summary.completed_goals} completed
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
 
             {/* Savings Goals Section */}
             <section className="dashboard-section" data-section="goals">
-              <div className="section-title-wrapper">
-                <h2 className="section-title">🎯 Savings Goals</h2>
-                <div className="section-meta">
-                  <span className="highlight">{dashboardData.summary.active_goals}</span> active ·
-                  <span className="highlight"> {dashboardData.summary.completed_goals}</span> completed
+              <div className="section-title-wrapper clickable" onClick={() => toggleSection('goals')}>
+                <h2 className="section-title"><Target size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Savings Goals</h2>
+                <div className="section-header-right">
+                  <div className="section-meta">
+                    <span className="highlight">{dashboardData.summary.active_goals}</span> active ·
+                    <span className="highlight"> {dashboardData.summary.completed_goals}</span> completed
+                  </div>
+                  <span className="collapse-icon">
+                    {collapsedSections['goals'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                  </span>
                 </div>
               </div>
-              {dashboardData.savings_goals.length > 0 ? (
+              {!collapsedSections['goals'] && (dashboardData.savings_goals.length > 0 ? (
                 <div className="goals-grid">
                   {dashboardData.savings_goals.map((goal, index) => (
                     <div key={goal.id} className={`goal-card ${goal.is_completed ? 'completed' : ''}`} style={{ animationDelay: `${index * 50}ms` }}>
-                      <div className="goal-header">
-                        <span className="goal-icon">{goal.goal_type === 'savings' ? '💰' : '📊'}</span>
-                        <span className={`goal-type ${goal.goal_type}`}>{goal.goal_type}</span>
-                      </div>
                       <div className="goal-name">{goal.name}</div>
                       {goal.category && <div className="goal-category">{goal.category}</div>}
                       <div className="goal-progress">
@@ -283,45 +433,47 @@ function App() {
                           />
                         </div>
                         <div className="progress-text">
-                          ${goal.current_amount.toFixed(2)} / ${goal.target_amount.toFixed(2)}
+                          ${formatNumber(goal.current_amount)} / ${formatNumber(goal.target_amount)}
                         </div>
                       </div>
                       <div className="goal-deadline">
-                        Deadline: {formatDate(goal.deadline)}
+                        {calculateDeadlineDue(goal.deadline)}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="empty-state">
-                  <p>🎯 No savings goals yet</p>
+                  <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No savings goals yet</p>
                   <p className="hint">Ask Nim to help you set a savings goal!</p>
                 </div>
-              )}
+              ))}
             </section>
 
             {/* Budgets Section */}
             <section className="dashboard-section" data-section="budgets">
-              <div className="section-title-wrapper">
-                <h2 className="section-title">💰 Budgets</h2>
-                <div className="section-meta">
-                  <span className="highlight">{dashboardData.summary.active_budgets}</span> active
+              <div className="section-title-wrapper clickable" onClick={() => toggleSection('budgets')}>
+                <h2 className="section-title"><Wallet size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Budgets</h2>
+                <div className="section-header-right">
+                  <div className="section-meta">
+                    <span className="highlight">{dashboardData.summary.active_budgets}</span> active
+                  </div>
+                  <span className="collapse-icon">
+                    {collapsedSections['budgets'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                  </span>
                 </div>
               </div>
-              {dashboardData.budgets.length > 0 ? (
+              {!collapsedSections['budgets'] && (dashboardData.budgets.length > 0 ? (
                 <div className="budgets-grid">
                   {dashboardData.budgets.map((budget, index) => (
                     <div key={budget.id} className={`budget-card ${budget.is_active ? 'active' : 'inactive'}`} style={{ animationDelay: `${index * 50}ms` }}>
                       <div className="budget-header">
                         <span className="budget-name">{budget.name}</span>
-                        <span className={`budget-status ${budget.is_active ? 'active' : 'inactive'}`}>
-                          {budget.is_active ? '● Active' : '○ Inactive'}
-                        </span>
                       </div>
-                      {budget.category && <div className="budget-category">📁 {budget.category}</div>}
+                      {/* {budget.category && <div className="budget-category">{budget.category}</div>} */}
                       <div className="budget-limit">
                         <span className="limit-label">Limit:</span>
-                        <span className="limit-amount">${budget.limit_amount.toFixed(2)}</span>
+                        <span className="limit-amount">${formatNumber(budget.limit_amount)}</span>
                       </div>
                       <div className="budget-period">
                         {formatDate(budget.start_date)} - {formatDate(budget.end_date)}
@@ -331,32 +483,38 @@ function App() {
                 </div>
               ) : (
                 <div className="empty-state">
-                  <p>💰 No budgets set</p>
+                  <p><Wallet size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No budgets set</p>
                   <p className="hint">Ask Nim to help you create a budget!</p>
                 </div>
-              )}
+              ))}
             </section>
 
             {/* Horizontal Layout: Subscriptions and Transactions */}
             <div className="horizontal-sections">
               {/* Subscriptions Section */}
               <section className="dashboard-section half-width" data-section="subscriptions">
-                <div className="section-title-wrapper">
-                  <h2 className="section-title">📱 Subscriptions</h2>
-                  <div className="section-meta">
-                    Total: <span className="highlight">${dashboardData.summary.monthly_subscription_cost.toFixed(2)}/month</span>
+                <div className="section-title-wrapper clickable" onClick={() => toggleSection('subscriptions')}>
+                  <h2 className="section-title"><Smartphone size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Subscriptions</h2>
+                  <div className="section-header-right">
+                    <div className="section-meta">
+                      Total: <span className="highlight">${formatNumber(dashboardData.summary.monthly_subscription_cost)}/month</span>
+                    </div>
+                    <span className="collapse-icon">
+                      {collapsedSections['subscriptions'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                    </span>
                   </div>
                 </div>
-                {dashboardData.subscriptions.length > 0 ? (
+                {!collapsedSections['subscriptions'] && (dashboardData.subscriptions.length > 0 ? (
                   <div className="subscriptions-list">
                     {dashboardData.subscriptions.map((sub, index) => (
                       <div key={sub.id} className="subscription-card" style={{ animationDelay: `${index * 50}ms` }}>
-                        <div className="sub-icon">📱</div>
                         <div className="sub-details">
-                          <div className="sub-name">{sub.name.replace(' subscription', '')}</div>
+                          <div className="sub-name-row">
+                            <span className="sub-name">{sub.name.replace(' subscription', '')}</span>
+                            <span className={`freq-tag ${getFrequencyTagClass(sub.frequency)}`}>{sub.frequency}</span>
+                          </div>
                           <div className="sub-meta">
-                            <span className="sub-frequency">{sub.frequency}</span>
-                            <span className="sub-last-payment">Last: {formatDate(sub.last_payment_date)}</span>
+                            <span className="sub-due">{calculateDueIn(sub.last_payment_date, sub.frequency)}</span>
                           </div>
                         </div>
                         <div className="sub-amount">
@@ -368,23 +526,61 @@ function App() {
                   </div>
                 ) : (
                   <div className="empty-state">
-                    <p>📱 No subscriptions tracked yet</p>
+                    <p><Smartphone size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No subscriptions tracked yet</p>
                     <p className="hint">Ask Nim to help you track a subscription!</p>
                   </div>
-                )}
+                ))}
               </section>
 
               {/* Transactions Section */}
               <section className="dashboard-section half-width" data-section="transactions">
-                <div className="section-title-wrapper">
-                  <h2 className="section-title">💸 Recent Transactions</h2>
-                  <div className="section-meta">
-                    <span className="highlight">{dashboardData.transactions.length}</span> total
+                <div className="section-title-wrapper clickable" onClick={() => toggleSection('transactions')}>
+                  <h2 className="section-title"><Banknote size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Recent Transactions</h2>
+                  <div className="section-header-right">
+                    <div className="section-actions">
+                      <div className="filter-dropdown" onClick={(e) => e.stopPropagation()}>
+                        <button 
+                          className={`filter-trigger ${txFilter !== 'all' ? 'has-filter' : ''}`}
+                          onClick={() => setShowTxFilter(!showTxFilter)}
+                        >
+                          <Filter size={16} />
+                          {txFilter !== 'all' && <span className="filter-badge">{txFilter === 'credit' ? 'In' : 'Out'}</span>}
+                        </button>
+                        {showTxFilter && (
+                          <div className="filter-menu">
+                            <button 
+                              className={`filter-option ${txFilter === 'all' ? 'active' : ''}`}
+                              onClick={() => { setTxFilter('all'); setShowTxFilter(false); }}
+                            >
+                              All transactions
+                            </button>
+                            <button 
+                              className={`filter-option ${txFilter === 'credit' ? 'active' : ''}`}
+                              onClick={() => { setTxFilter('credit'); setShowTxFilter(false); }}
+                            >
+                              <ArrowDown size={14} /> Received
+                            </button>
+                            <button 
+                              className={`filter-option ${txFilter === 'debit' ? 'active' : ''}`}
+                              onClick={() => { setTxFilter('debit'); setShowTxFilter(false); }}
+                            >
+                              <ArrowUp size={14} /> Sent
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="collapse-icon">
+                      {collapsedSections['transactions'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                    </span>
                   </div>
                 </div>
-                {dashboardData.transactions.length > 0 ? (
+                {!collapsedSections['transactions'] && (dashboardData.transactions.length > 0 ? (
                   <div className="transactions-list">
-                    {dashboardData.transactions.slice(0, 10).map((tx, index) => (
+                    {dashboardData.transactions
+                      .filter(tx => txFilter === 'all' || tx.direction === txFilter)
+                      .slice(0, 10)
+                      .map((tx, index) => (
                       <div key={tx.id} className="transaction-item" style={{ animationDelay: `${index * 30}ms` }}>
                         <div className={`tx-direction ${tx.direction}`}>
                           {getDirectionIcon(tx.direction)}
@@ -393,7 +589,6 @@ function App() {
                           <div className="tx-note">{tx.note || `${tx.type} transaction`}</div>
                           <div className="tx-meta">
                             <span className="tx-date">{formatDate(tx.created_at)}</span>
-                            <span className="tx-type">{tx.type}</span>
                           </div>
                         </div>
                         <div className={`tx-amount ${tx.direction}`}>
@@ -407,12 +602,246 @@ function App() {
                   </div>
                 ) : (
                   <div className="empty-state">
-                    <p>💸 No transactions yet</p>
+                    <p><Banknote size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No transactions yet</p>
                     <p className="hint">Your transaction history will appear here</p>
                   </div>
-                )}
+                ))}
               </section>
             </div>
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {dashboardData && activeTab === 'analytics' && (
+          <div className="unified-content analytics-view">
+            {/* Expenses by Category - Pie Chart */}
+            <section className="dashboard-section analytics-section">
+              <div className="section-title-wrapper">
+                <h2 className="section-title"><PiggyBank size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Expenses by Category</h2>
+              </div>
+              <div className="chart-container pie-chart">
+                {getExpensesByCategory().length > 0 ? (
+                  <div className="pie-chart-wrapper">
+                    <svg viewBox="0 0 200 200" className="pie-svg">
+                      {(() => {
+                        const data = getExpensesByCategory()
+                        const total = data.reduce((sum, item) => sum + item.value, 0)
+                        let currentAngle = 0
+                        const colors = ['#FF6D00', '#9BC1F3', '#9E8C78', '#FFB347', '#7E57C2', '#22C55E']
+                        
+                        return data.map((item, i) => {
+                          const percentage = (item.value / total) * 100
+                          const angle = (item.value / total) * 360
+                          const startAngle = currentAngle
+                          currentAngle += angle
+                          
+                          const x1 = 100 + 80 * Math.cos((startAngle - 90) * Math.PI / 180)
+                          const y1 = 100 + 80 * Math.sin((startAngle - 90) * Math.PI / 180)
+                          const x2 = 100 + 80 * Math.cos((startAngle + angle - 90) * Math.PI / 180)
+                          const y2 = 100 + 80 * Math.sin((startAngle + angle - 90) * Math.PI / 180)
+                          const largeArc = angle > 180 ? 1 : 0
+                          
+                          return (
+                            <path
+                              key={i}
+                              d={`M 100 100 L ${x1} ${y1} A 80 80 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                              fill={colors[i % colors.length]}
+                              opacity="0.85"
+                              stroke="white"
+                              strokeWidth="2"
+                            />
+                          )
+                        })
+                      })()}
+                    </svg>
+                    <div className="pie-legend">
+                      {getExpensesByCategory().map((item, i) => {
+                        const colors = ['#FF6D00', '#9BC1F3', '#9E8C78', '#FFB347', '#7E57C2', '#22C55E']
+                        const total = getExpensesByCategory().reduce((sum, x) => sum + x.value, 0)
+                        const percentage = ((item.value / total) * 100).toFixed(1)
+                        return (
+                          <div key={i} className="legend-item">
+                            <span className="legend-color" style={{ backgroundColor: colors[i % colors.length] }}></span>
+                            <span className="legend-label">{item.name}</span>
+                            <span className="legend-value">${formatNumber(item.value)} ({percentage}%)</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <p>No expense data available</p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Spending Over Time - Line Chart */}
+            <section className="dashboard-section analytics-section">
+              <div className="section-title-wrapper">
+                <h2 className="section-title"><TrendingDown size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Spending Trend (6 Months)</h2>
+              </div>
+              <div className="chart-container line-chart">
+                {getSpendingOverTime().length > 0 ? (
+                  <div className="line-chart-wrapper">
+                    <svg viewBox="0 0 600 300" className="line-svg">
+                      {(() => {
+                        const data = getSpendingOverTime()
+                        const maxAmount = Math.max(...data.map(d => d.amount), 100)
+                        const padding = 40
+                        const width = 600 - padding * 2
+                        const height = 300 - padding * 2
+                        const stepX = width / (data.length - 1 || 1)
+                        
+                        const points = data.map((d, i) => {
+                          const x = padding + i * stepX
+                          const y = padding + height - (d.amount / maxAmount) * height
+                          return `${x},${y}`
+                        }).join(' ')
+                        
+                        const areaPoints = `${padding},${padding + height} ${points} ${padding + width},${padding + height}`
+                        
+                        return (
+                          <g>
+                            {/* Grid lines */}
+                            {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+                              <g key={i}>
+                                <line
+                                  x1={padding}
+                                  y1={padding + height * ratio}
+                                  x2={padding + width}
+                                  y2={padding + height * ratio}
+                                  stroke="#E5E5E5"
+                                  strokeWidth="1"
+                                />
+                                <text
+                                  x={padding - 10}
+                                  y={padding + height * ratio + 4}
+                                  textAnchor="end"
+                                  fontSize="12"
+                                  fill="#737373"
+                                >
+                                  ${(maxAmount * (1 - ratio)).toFixed(0)}
+                                </text>
+                              </g>
+                            ))}
+                            
+                            {/* Area fill */}
+                            <polygon
+                              points={areaPoints}
+                              fill="#FF6D00"
+                              opacity="0.1"
+                            />
+                            
+                            {/* Line */}
+                            <polyline
+                              points={points}
+                              fill="none"
+                              stroke="#FF6D00"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            
+                            {/* Data points */}
+                            {data.map((d, i) => {
+                              const x = padding + i * stepX
+                              const y = padding + height - (d.amount / maxAmount) * height
+                              return (
+                                <g key={i}>
+                                  <circle
+                                    cx={x}
+                                    cy={y}
+                                    r="5"
+                                    fill="#FF6D00"
+                                    stroke="white"
+                                    strokeWidth="2"
+                                  />
+                                  <text
+                                    x={x}
+                                    y={padding + height + 20}
+                                    textAnchor="middle"
+                                    fontSize="12"
+                                    fill="#737373"
+                                  >
+                                    {d.month}
+                                  </text>
+                                </g>
+                              )
+                            })}
+                          </g>
+                        )
+                      })()}
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <p>No spending data available</p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Goal Timeline */}
+            <section className="dashboard-section analytics-section">
+              <div className="section-title-wrapper">
+                <h2 className="section-title"><Target size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Goal Timeline</h2>
+              </div>
+              <div className="goal-timeline">
+                {getGoalTimeline().length > 0 ? (
+                  <div className="timeline-wrapper">
+                    {getGoalTimeline().map((goal, i) => (
+                      <div key={i} className="timeline-item">
+                        <div className="timeline-marker" style={{ 
+                          background: goal.progress >= 75 ? '#22C55E' : goal.progress >= 50 ? '#FF6D00' : '#9BC1F3' 
+                        }}>
+                          <Target size={16} />
+                        </div>
+                        <div className="timeline-content">
+                          <div className="timeline-header">
+                            <h4>{goal.name}</h4>
+                            <span className="timeline-date">{formatDate(goal.deadline.toISOString())}</span>
+                          </div>
+                          <div className="timeline-progress">
+                            <div className="progress-bar">
+                              <div className="progress-fill" style={{ width: `${goal.progress}%` }} />
+                            </div>
+                            <span className="progress-label">
+                              ${formatNumber(goal.current)} / ${formatNumber(goal.target)} ({goal.progress.toFixed(0)}%)
+                            </span>
+                          </div>
+                          <div className="timeline-eta">
+                            {calculateDeadlineDue(goal.deadline.toISOString())}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No active goals with deadlines</p>
+                    <p className="hint">Set goals with target dates to see your timeline!</p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Export Reports */}
+            <section className="dashboard-section analytics-section">
+              <div className="section-title-wrapper">
+                <h2 className="section-title"><Folder size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Export Reports</h2>
+              </div>
+              <div className="export-actions">
+                <button className="export-btn" onClick={exportReport}>
+                  <Folder size={18} />
+                  <div className="export-content">
+                    <h4>Generate PDF Report</h4>
+                    <p>Export {new Date().toLocaleDateString('en-US', { month: 'long' })}'s spending summary</p>
+                  </div>
+                </button>
+              </div>
+            </section>
           </div>
         )}
 
