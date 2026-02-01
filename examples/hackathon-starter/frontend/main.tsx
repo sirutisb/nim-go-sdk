@@ -110,12 +110,31 @@ function App() {
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics'>('dashboard')
   const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'LIL'>('USD')
+  const [hoveredSlice, setHoveredSlice] = useState<{name: string, value: number, percentage: string} | null>(null)
 
   // Mock balance data
   const balances = {
     USD: 2.00,
     LIL: 11.49
   }
+
+  // Mock analytics data0
+  const mockExpensesByCategory = [
+    { name: 'Food & Dining', value: 450 },
+    { name: 'Transportation', value: 220 },
+    { name: 'Entertainment', value: 180 },
+    { name: 'Shopping', value: 320 },
+    { name: 'Bills & Utilities', value: 280 },
+  ]
+
+  const mockSpendingOverTime = [
+    { month: 'Aug 2025', amount: 1200 },
+    { month: 'Sep 2025', amount: 1450 },
+    { month: 'Oct 2025', amount: 980 },
+    { month: 'Nov 2025', amount: 1650 },
+    { month: 'Dec 2025', amount: 1320 },
+    { month: 'Jan 2026', amount: 1450 },
+  ]
 
   // Toggle section collapse
   const toggleSection = (section: string) => {
@@ -886,29 +905,28 @@ function App() {
               variants={fadeInUp}
               transition={{ duration: 0.4 }}
             >
+              <div className="analytics-charts-row">
               {/* Expenses by Category - Pie Chart */}
               <motion.section 
-                className="dashboard-section analytics-section"
+                className="dashboard-section analytics-section chart-section"
                 variants={scaleIn}
                 initial="initial"
                 animate="animate"
-                transition={{ delay: 0.1 }}
+                transition={{ delay: 0.2 }}
               >
                 <div className="section-title-wrapper">
                   <h2 className="section-title"><PiggyBank size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Expenses by Category</h2>
                 </div>
                 <div className="chart-container pie-chart">
-                {getExpensesByCategory().length > 0 ? (
-                  <div className="pie-chart-wrapper">
+                  <div className="pie-chart-wrapper" style={{ position: 'relative' }}>
                     <svg viewBox="0 0 200 200" className="pie-svg">
                       {(() => {
-                        const data = getExpensesByCategory()
+                        const data = mockExpensesByCategory
                         const total = data.reduce((sum, item) => sum + item.value, 0)
                         let currentAngle = 0
                         const colors = ['#FF6D00', '#9BC1F3', '#9E8C78', '#FFB347', '#7E57C2', '#22C55E']
                         
                         return data.map((item, i) => {
-                          const percentage = (item.value / total) * 100
                           const angle = (item.value / total) * 360
                           const startAngle = currentAngle
                           currentAngle += angle
@@ -918,263 +936,171 @@ function App() {
                           const x2 = 100 + 80 * Math.cos((startAngle + angle - 90) * Math.PI / 180)
                           const y2 = 100 + 80 * Math.sin((startAngle + angle - 90) * Math.PI / 180)
                           const largeArc = angle > 180 ? 1 : 0
+                          const percentage = ((item.value / total) * 100).toFixed(1)
                           
                           return (
-                            <path
+                            <motion.path
                               key={i}
                               d={`M 100 100 L ${x1} ${y1} A 80 80 0 ${largeArc} 1 ${x2} ${y2} Z`}
                               fill={colors[i % colors.length]}
-                              opacity="0.85"
+                              opacity={hoveredSlice?.name === item.name ? 1 : 0.85}
                               stroke="white"
                               strokeWidth="2"
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: hoveredSlice?.name === item.name ? 1.05 : 1, opacity: hoveredSlice?.name === item.name ? 1 : 0.85 }}
+                              transition={{ delay: i * 0.1 + 0.3, duration: 0.5 }}
+                              onMouseEnter={() => setHoveredSlice({ name: item.name, value: item.value, percentage })}
+                              onMouseLeave={() => setHoveredSlice(null)}
+                              style={{ cursor: 'pointer' }}
                             />
                           )
                         })
                       })()}
                     </svg>
-                    <div className="pie-legend">
-                      {getExpensesByCategory().map((item, i) => {
-                        const colors = ['#FF6D00', '#9BC1F3', '#9E8C78', '#FFB347', '#7E57C2', '#22C55E']
-                        const total = getExpensesByCategory().reduce((sum, x) => sum + x.value, 0)
-                        const percentage = ((item.value / total) * 100).toFixed(1)
-                        return (
-                          <div key={i} className="legend-item">
-                            <span className="legend-color" style={{ backgroundColor: colors[i % colors.length] }}></span>
-                            <span className="legend-label">{item.name}</span>
-                            <span className="legend-value">${formatNumber(item.value)} ({percentage}%)</span>
-                          </div>
-                        )
-                      })}
-                    </div>
+                    {hoveredSlice && (
+                      <motion.div
+                        className="pie-tooltip"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                      >
+                        <div className="tooltip-name">{hoveredSlice.name}</div>
+                        <div className="tooltip-value">${formatNumber(hoveredSlice.value)}</div>
+                        <div className="tooltip-percentage">{hoveredSlice.percentage}%</div>
+                      </motion.div>
+                    )}
                   </div>
-                ) : (
-                  <motion.div 
-                    className="empty-state"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    <p>No expense data available</p>
-                  </motion.div>
-                )}
               </div>
             </motion.section>
 
             {/* Spending Over Time - Line Chart */}
             <motion.section 
-              className="dashboard-section analytics-section"
-              variants={fadeInUp}
-              initial="initial"
-              animate="animate"
-              transition={{ delay: 0.2 }}
-            >
-              <div className="section-title-wrapper">
-                <h2 className="section-title"><TrendingDown size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Spending Trend (6 Months)</h2>
-              </div>
-              <div className="chart-container line-chart">
-                {getSpendingOverTime().length > 0 ? (
-                  <div className="line-chart-wrapper">
-                    <svg viewBox="0 0 600 300" className="line-svg">
-                      {(() => {
-                        const data = getSpendingOverTime()
-                        const maxAmount = Math.max(...data.map(d => d.amount), 100)
-                        const padding = 40
-                        const width = 600 - padding * 2
-                        const height = 300 - padding * 2
-                        const stepX = width / (data.length - 1 || 1)
-                        
-                        const points = data.map((d, i) => {
-                          const x = padding + i * stepX
-                          const y = padding + height - (d.amount / maxAmount) * height
-                          return `${x},${y}`
-                        }).join(' ')
-                        
-                        const areaPoints = `${padding},${padding + height} ${points} ${padding + width},${padding + height}`
-                        
-                        return (
-                          <g>
-                            {/* Grid lines */}
-                            {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
-                              <g key={i}>
-                                <line
-                                  x1={padding}
-                                  y1={padding + height * ratio}
-                                  x2={padding + width}
-                                  y2={padding + height * ratio}
-                                  stroke="#E5E5E5"
-                                  strokeWidth="1"
-                                />
-                                <text
-                                  x={padding - 10}
-                                  y={padding + height * ratio + 4}
-                                  textAnchor="end"
-                                  fontSize="12"
-                                  fill="#737373"
-                                >
-                                  ${(maxAmount * (1 - ratio)).toFixed(0)}
-                                </text>
-                              </g>
-                            ))}
-                            
-                            {/* Area fill */}
-                            <polygon
-                              points={areaPoints}
-                              fill="#FF6D00"
-                              opacity="0.1"
-                            />
-                            
-                            {/* Line */}
-                            <polyline
-                              points={points}
-                              fill="none"
-                              stroke="#FF6D00"
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            
-                            {/* Data points */}
-                            {data.map((d, i) => {
-                              const x = padding + i * stepX
-                              const y = padding + height - (d.amount / maxAmount) * height
-                              return (
-                                <g key={i}>
-                                  <circle
-                                    cx={x}
-                                    cy={y}
-                                    r="5"
-                                    fill="#FF6D00"
-                                    stroke="white"
-                                    strokeWidth="2"
-                                  />
-                                  <text
-                                    x={x}
-                                    y={padding + height + 20}
-                                    textAnchor="middle"
-                                    fontSize="12"
-                                    fill="#737373"
-                                  >
-                                    {d.month}
-                                  </text>
-                                </g>
-                              )
-                            })}
-                          </g>
-                        )
-                      })()}
-                    </svg>
-                  </div>
-                ) : (
-                  <motion.div 
-                    className="empty-state"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    <p>No spending data available</p>
-                  </motion.div>
-                )}
-              </div>
-            </motion.section>
-
-            {/* Goal Timeline */}
-            <motion.section 
-              className="dashboard-section analytics-section"
-              variants={fadeInUp}
-              initial="initial"
-              animate="animate"
-              transition={{ delay: 0.2 }}
-            >
-              <div className="section-title-wrapper">
-                <h2 className="section-title"><Target size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Goal Timeline</h2>
-              </div>
-              <div className="goal-timeline">
-                {getGoalTimeline().length > 0 ? (
-                  <motion.div 
-                    className="timeline-wrapper"
-                    variants={staggerContainer}
-                    initial="initial"
-                    animate="animate"
-                  >
-                    {getGoalTimeline().map((goal, i) => (
-                      <motion.div 
-                        key={i} 
-                        className="timeline-item"
-                        variants={slideIn}
-                        whileHover={{ x: 5 }}
-                      >
-                        <motion.div 
-                          className="timeline-marker" 
-                          style={{ 
-                            background: goal.progress >= 75 ? '#22C55E' : goal.progress >= 50 ? '#FF6D00' : '#9BC1F3' 
-                          }}
-                          whileHover={{ scale: 1.1 }}
-                        >
-                          <Target size={16} />
-                        </motion.div>
-                        <div className="timeline-content">
-                          <div className="timeline-header">
-                            <h4>{goal.name}</h4>
-                            <span className="timeline-date">{formatDate(goal.deadline.toISOString())}</span>
-                          </div>
-                          <div className="timeline-progress">
-                            <div className="progress-bar">
-                              <motion.div 
-                                className="progress-fill"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${goal.progress}%` }}
-                                transition={{ duration: 1, delay: i * 0.1 }}
-                              />
-                            </div>
-                            <span className="progress-label">
-                              ${formatNumber(goal.current)} / ${formatNumber(goal.target)} ({goal.progress.toFixed(0)}%)
-                            </span>
-                          </div>
-                          <div className="timeline-eta">
-                            {calculateDeadlineDue(goal.deadline.toISOString())}
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    className="empty-state"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No active goals with deadlines</p>
-                    <p className="hint">Set goals with target dates to see your timeline!</p>
-                  </motion.div>
-                )}
-              </div>
-            </motion.section>
-
-            {/* Export Reports */}
-            <motion.section 
-              className="dashboard-section analytics-section"
+              className="dashboard-section analytics-section chart-section"
               variants={fadeInUp}
               initial="initial"
               animate="animate"
               transition={{ delay: 0.3 }}
             >
-              <div className="section-title-wrapper">
-                <h2 className="section-title"><Folder size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Export Reports</h2>
-              </div>
-              <div className="export-actions">
+              <div className="section-title-wrapper" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 className="section-title" style={{ marginBottom: 0 }}><TrendingDown size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Spending Trend</h2>
                 <motion.button 
-                  className="export-btn" 
+                  className="export-btn-small" 
                   onClick={exportReport}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  <Folder size={18} />
-                  <div className="export-content">
-                    <h4>Generate PDF Report</h4>
-                    <p>Export {new Date().toLocaleDateString('en-US', { month: 'long' })}'s spending summary</p>
-                  </div>
+                  <Folder size={16} />
+                  <span>Export</span>
                 </motion.button>
               </div>
+              <div className="chart-container line-chart">
+                  <div className="line-chart-wrapper">
+                    <svg viewBox="0 0 600 300" className="line-svg">
+                      {(() => {
+                        const data = mockSpendingOverTime
+                        const maxAmount = Math.max(...data.map(d => d.amount))
+                        const padding = 40
+                        const width = 600 - padding * 2
+                        const height = 300 - padding * 2
+                        const stepX = width / (data.length - 1)
+                        
+                        const points = data.map((d, i) => {
+                          const x = padding + i * stepX
+                          const y = padding + height - (d.amount / maxAmount) * height
+                          return { x, y, amount: d.amount, month: d.month }
+                        })
+                        
+                        const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+                        
+                        return (
+                          <g>
+                            {/* Grid lines */}
+                            {[0, 1, 2, 3, 4].map((i) => (
+                              <line
+                                key={`grid-${i}`}
+                                x1={padding}
+                                y1={padding + (height / 4) * i}
+                                x2={padding + width}
+                                y2={padding + (height / 4) * i}
+                                stroke="#E5E5E5"
+                                strokeWidth="1"
+                              />
+                            ))}
+                            
+                            {/* Line path */}
+                            <motion.path
+                              d={pathD}
+                              fill="none"
+                              stroke="#FF6D00"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              initial={{ pathLength: 0 }}
+                              animate={{ pathLength: 1 }}
+                              transition={{ duration: 1.5, ease: "easeInOut" }}
+                            />
+                            
+                            {/* Area under curve */}
+                            <motion.path
+                              d={`${pathD} L ${padding + width} ${padding + height} L ${padding} ${padding + height} Z`}
+                              fill="url(#gradient)"
+                              opacity="0.2"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 0.2 }}
+                              transition={{ duration: 1, delay: 0.5 }}
+                            />
+                            
+                            <defs>
+                              <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#FF6D00" />
+                                <stop offset="100%" stopColor="#FF6D00" stopOpacity="0" />
+                              </linearGradient>
+                            </defs>
+                            
+                            {/* Data points */}
+                            {points.map((p, i) => (
+                              <g key={i}>
+                                <motion.circle
+                                  cx={p.x}
+                                  cy={p.y}
+                                  r="5"
+                                  fill="#FF6D00"
+                                  stroke="white"
+                                  strokeWidth="2"
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ delay: i * 0.1 + 0.5, type: "spring" }}
+                                  whileHover={{ scale: 1.5 }}
+                                />
+                                <text
+                                  x={p.x}
+                                  y={p.y - 15}
+                                  textAnchor="middle"
+                                  fontSize="12"
+                                  fill="#737373"
+                                  fontWeight="500"
+                                >
+                                  ${(p.amount / 1000).toFixed(1)}k
+                                </text>
+                                <text
+                                  x={p.x}
+                                  y={padding + height + 20}
+                                  textAnchor="middle"
+                                  fontSize="12"
+                                  fill="#737373"
+                                >
+                                  {p.month}
+                                </text>
+                              </g>
+                            ))}
+                          </g>
+                        )
+                      })()}
+                    </svg>
+                  </div>
+              </div>
             </motion.section>
+            </div>
           </motion.div>
         )}
         </AnimatePresence>

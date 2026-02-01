@@ -1146,6 +1146,18 @@ body {
   margin-bottom: 2rem;
 }
 
+/* Analytics Charts Row - Horizontal Layout */
+.analytics-charts-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.analytics-charts-row .chart-section {
+  flex: 1;
+  margin-bottom: 0;
+}
+
 /* Chart Container */
 .chart-container {
   background: var(--white);
@@ -1159,12 +1171,50 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 1.5rem;
+  min-height: 250px;
 }
 
 .pie-svg {
-  width: 250px;
-  height: 250px;
+  width: 220px;
+  height: 220px;
+}
+
+/* Pie Chart Tooltip */
+.pie-tooltip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--white);
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tooltip-name {
+  font-family: 'ABC Marist', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--black);
+  margin-bottom: 0.25rem;
+}
+
+.tooltip-value {
+  font-family: 'ABC Marist', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--orange);
+  margin-bottom: 0.125rem;
+}
+
+.tooltip-percentage {
+  font-size: 0.875rem;
+  color: var(--gray-500);
 }
 
 .pie-legend {
@@ -1354,8 +1404,39 @@ body {
   opacity: 0.9;
 }
 
+/* Small Export Button */
+.export-btn-small {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--orange);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--white);
+  font-family: 'Helvetica Monospaced Pro', monospace;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.export-btn-small:hover {
+  background: #ff8533;
+  box-shadow: 0 4px 12px rgba(255, 109, 0, 0.3);
+}
+
+.export-btn-small svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* Responsive adjustments for charts */
 @media (max-width: 768px) {
+  .analytics-charts-row {
+    flex-direction: column;
+  }
+  
   .pie-svg {
     width: 200px;
     height: 200px;
