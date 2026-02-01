@@ -136,6 +136,27 @@ function App() {
     { month: 'Jan 2026', amount: 1450 },
   ]
 
+  // Mock data: Income vs Expenses by month
+  const mockIncomeVsExpenses = [
+    { month: 'Sep', income: 4200, expenses: 3100 },
+    { month: 'Oct', income: 4500, expenses: 3400 },
+    { month: 'Nov', income: 4100, expenses: 2900 },
+    { month: 'Dec', income: 5200, expenses: 4100 },
+    { month: 'Jan', income: 4800, expenses: 3200 },
+    { month: 'Feb', income: 4600, expenses: 2800 },
+  ]
+
+  // Mock data: Weekly activity (transactions per day)
+  const mockWeeklyActivity = [
+    { day: 'Mon', transactions: 5, amount: 120 },
+    { day: 'Tue', transactions: 3, amount: 85 },
+    { day: 'Wed', transactions: 8, amount: 240 },
+    { day: 'Thu', transactions: 4, amount: 95 },
+    { day: 'Fri', transactions: 12, amount: 380 },
+    { day: 'Sat', transactions: 15, amount: 520 },
+    { day: 'Sun', transactions: 6, amount: 150 },
+  ]
+
   // Toggle section collapse
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }))
@@ -1100,6 +1121,110 @@ function App() {
                   </div>
               </div>
             </motion.section>
+            </div>
+
+            {/* Second row of charts */}
+            <div className="analytics-charts-row">
+              {/* Income vs Expenses - Bar Chart */}
+              <motion.section 
+                className="dashboard-section analytics-section chart-section"
+                variants={fadeInUp}
+                initial="initial"
+                animate="animate"
+                transition={{ delay: 0.4 }}
+              >
+                <div className="section-title-wrapper">
+                  <h2 className="section-title"><BarChart3 size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Income vs Expenses</h2>
+                </div>
+                <div className="chart-container bar-chart">
+                  <div className="bar-chart-wrapper">
+                    <div className="income-expense-chart">
+                      <div className="chart-y-axis">
+                        {['$5k', '$4k', '$3k', '$2k', '$1k', '$0'].map((label, i) => (
+                          <span key={i} className="y-label">{label}</span>
+                        ))}
+                      </div>
+                      <div className="chart-bars-area">
+                        {mockIncomeVsExpenses.map((d, i) => {
+                          const maxAmount = Math.max(...mockIncomeVsExpenses.flatMap(x => [x.income, x.expenses]))
+                          const incomePercent = (d.income / maxAmount) * 100
+                          const expensePercent = (d.expenses / maxAmount) * 100
+                          
+                          return (
+                            <div key={i} className="bar-group">
+                              <div className="bars-wrapper">
+                                <motion.div 
+                                  className="bar income-bar"
+                                  initial={{ height: 0 }}
+                                  animate={{ height: `${incomePercent}%` }}
+                                  transition={{ duration: 0.8, delay: i * 0.1 }}
+                                />
+                                <motion.div 
+                                  className="bar expense-bar"
+                                  initial={{ height: 0 }}
+                                  animate={{ height: `${expensePercent}%` }}
+                                  transition={{ duration: 0.8, delay: i * 0.1 + 0.05 }}
+                                />
+                              </div>
+                              <span className="month-label">{d.month}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    <div className="bar-legend">
+                      <div className="legend-item">
+                        <span className="legend-color" style={{ backgroundColor: '#22C55E' }}></span>
+                        <span className="legend-label">Income</span>
+                      </div>
+                      <div className="legend-item">
+                        <span className="legend-color" style={{ backgroundColor: '#FF6D00' }}></span>
+                        <span className="legend-label">Expenses</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.section>
+
+              {/* Weekly Activity - Vertical Bar Chart */}
+              <motion.section 
+                className="dashboard-section analytics-section chart-section"
+                variants={fadeInUp}
+                initial="initial"
+                animate="animate"
+                transition={{ delay: 0.5 }}
+              >
+                <div className="section-title-wrapper">
+                  <h2 className="section-title"><CreditCard size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Weekly Activity</h2>
+                </div>
+                <div className="chart-container activity-chart">
+                  <div className="activity-chart-wrapper">
+                    <div className="activity-bars-container">
+                      {mockWeeklyActivity.map((d, i) => {
+                        const maxTransactions = Math.max(...mockWeeklyActivity.map(x => x.transactions))
+                        const heightPercent = (d.transactions / maxTransactions) * 100
+                        const intensity = d.transactions / maxTransactions
+                        const color = `rgba(255, 109, 0, ${0.4 + intensity * 0.6})`
+                        
+                        return (
+                          <div key={i} className="activity-bar-group">
+                            <span className="bar-value">{d.transactions}</span>
+                            <motion.div 
+                              className="activity-bar"
+                              style={{ backgroundColor: color }}
+                              initial={{ height: 0 }}
+                              animate={{ height: `${heightPercent}%` }}
+                              transition={{ duration: 0.6, delay: i * 0.08 }}
+                            />
+                            <span className="bar-day">{d.day}</span>
+                            <span className="bar-amount">${d.amount}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </motion.section>
             </div>
           </motion.div>
         )}
