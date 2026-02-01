@@ -1146,6 +1146,18 @@ body {
   margin-bottom: 2rem;
 }
 
+/* Analytics Charts Row - Horizontal Layout */
+.analytics-charts-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.analytics-charts-row .chart-section {
+  flex: 1;
+  margin-bottom: 0;
+}
+
 /* Chart Container */
 .chart-container {
   background: var(--white);
@@ -1159,12 +1171,50 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 1.5rem;
+  min-height: 250px;
 }
 
 .pie-svg {
-  width: 250px;
-  height: 250px;
+  width: 220px;
+  height: 220px;
+}
+
+/* Pie Chart Tooltip */
+.pie-tooltip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--white);
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tooltip-name {
+  font-family: 'ABC Marist', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--black);
+  margin-bottom: 0.25rem;
+}
+
+.tooltip-value {
+  font-family: 'ABC Marist', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--orange);
+  margin-bottom: 0.125rem;
+}
+
+.tooltip-percentage {
+  font-size: 0.875rem;
+  color: var(--gray-500);
 }
 
 .pie-legend {
@@ -1354,15 +1404,225 @@ body {
   opacity: 0.9;
 }
 
+/* Small Export Button */
+.export-btn-small {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--orange);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--white);
+  font-family: 'Helvetica Monospaced Pro', monospace;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.export-btn-small:hover {
+  background: #ff8533;
+  box-shadow: 0 4px 12px rgba(255, 109, 0, 0.3);
+}
+
+.export-btn-small svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Bar Chart */
+.bar-chart-wrapper {
+  width: 100%;
+}
+
+.bar-chart {
+  min-height: 340px;
+}
+
+.income-expense-chart {
+  display: flex;
+  height: 220px;
+  padding: 0.5rem 0;
+}
+
+.chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-right: 0.75rem;
+  min-width: 40px;
+}
+
+.chart-y-axis .y-label {
+  font-size: 0.7rem;
+  color: #737373;
+  text-align: right;
+}
+
+.chart-bars-area {
+  flex: 1;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  border-left: 1px solid #E5E5E5;
+  border-bottom: 1px solid #E5E5E5;
+  padding: 0 0.5rem;
+}
+
+.bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+}
+
+.bars-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 1;
+  width: 100%;
+  justify-content: center;
+}
+
+.bar {
+  width: 18px;
+  border-radius: 4px 4px 0 0;
+}
+
+.income-bar {
+  background-color: #22C55E;
+}
+
+.expense-bar {
+  background-color: #FF6D00;
+}
+
+.month-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #737373;
+  margin-top: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.bar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--cream);
+  border-radius: 8px;
+}
+
+.bar-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bar-legend .legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.bar-legend .legend-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--black);
+}
+
+/* Activity Chart */
+.activity-chart-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.activity-chart {
+  min-height: 320px;
+}
+
+.activity-bars-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  width: 100%;
+  height: 250px;
+  padding: 0 0.5rem;
+  gap: 0.5rem;
+}
+
+.activity-bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+}
+
+.activity-bar-group .bar-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--orange);
+  margin-bottom: 0.5rem;
+  min-height: 1rem;
+}
+
+.activity-bar {
+  width: 100%;
+  max-width: 40px;
+  border-radius: 6px;
+  margin-top: auto;
+}
+
+.activity-bar-group .bar-day {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #737373;
+  margin-top: 0.75rem;
+}
+
+.activity-bar-group .bar-amount {
+  font-size: 0.7rem;
+  color: var(--beige);
+  margin-top: 0.25rem;
+}
+
+/* Bar Chart */
+.bar-chart {
+  min-height: 380px;
+}
+
 /* Responsive adjustments for charts */
 @media (max-width: 768px) {
+  .analytics-charts-row {
+    flex-direction: column;
+  }
+  
   .pie-svg {
     width: 200px;
     height: 200px;
   }
   
-  .line-svg {
-    min-width: 400px;
+  .line-svg,
+  .bar-svg {
+    min-width: 350px;
+  }
+  
+  .bar-legend {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .activity-svg {
+    max-width: 100%;
   }
 }
 

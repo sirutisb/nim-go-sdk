@@ -5,6 +5,7 @@ import ReactDOM from 'react-dom/client'
 import { NimChat } from './nim-chat-plus-plus/nim-chat/src/NimChat'
 import './nim-chat-plus-plus/nim-chat/src/styles/index.css'
 import './styles.css'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   AlertTriangle,
   BarChart3,
@@ -25,6 +26,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
+import jsPDF from 'jspdf'
 
 // Types for API responses
 interface SubscriptionDTO {
@@ -114,12 +116,52 @@ function App() {
   const [exportProgress, setExportProgress] = useState(0)
   const [exportStage, setExportStage] = useState('')
   const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'LIL'>('USD')
+  const [hoveredSlice, setHoveredSlice] = useState<{name: string, value: number, percentage: string} | null>(null)
 
   // Mock balance data
   const balances = {
     USD: 2.00,
     LIL: 11.49
   }
+
+  // Mock analytics data0
+  const mockExpensesByCategory = [
+    { name: 'Food & Dining', value: 450 },
+    { name: 'Transportation', value: 220 },
+    { name: 'Entertainment', value: 180 },
+    { name: 'Shopping', value: 320 },
+    { name: 'Bills & Utilities', value: 280 },
+  ]
+
+  const mockSpendingOverTime = [
+    { month: 'Aug 2025', amount: 1200 },
+    { month: 'Sep 2025', amount: 1450 },
+    { month: 'Oct 2025', amount: 980 },
+    { month: 'Nov 2025', amount: 1650 },
+    { month: 'Dec 2025', amount: 1320 },
+    { month: 'Jan 2026', amount: 1450 },
+  ]
+
+  // Mock data: Income vs Expenses by month
+  const mockIncomeVsExpenses = [
+    { month: 'Sep', income: 4200, expenses: 3100 },
+    { month: 'Oct', income: 4500, expenses: 3400 },
+    { month: 'Nov', income: 4100, expenses: 2900 },
+    { month: 'Dec', income: 5200, expenses: 4100 },
+    { month: 'Jan', income: 4800, expenses: 3200 },
+    { month: 'Feb', income: 4600, expenses: 2800 },
+  ]
+
+  // Mock data: Weekly activity (transactions per day)
+  const mockWeeklyActivity = [
+    { day: 'Mon', transactions: 5, amount: 120 },
+    { day: 'Tue', transactions: 3, amount: 85 },
+    { day: 'Wed', transactions: 8, amount: 240 },
+    { day: 'Thu', transactions: 4, amount: 95 },
+    { day: 'Fri', transactions: 12, amount: 380 },
+    { day: 'Sat', transactions: 15, amount: 520 },
+    { day: 'Sun', transactions: 6, amount: 150 },
+  ]
 
   // Toggle section collapse
   const toggleSection = (section: string) => {
@@ -372,42 +414,263 @@ function App() {
 
   // Export PDF report
   const exportReport = async () => {
-    setShowExportModal(true)
-    setExportProgress(0)
+    if (!dashboardData) return
 
-    const stages = [
-      { progress: 20, stage: 'Gathering financial data...', delay: 500 },
-      { progress: 40, stage: 'Analyzing transactions...', delay: 800 },
-      { progress: 60, stage: 'Generating charts...', delay: 700 },
-      { progress: 80, stage: 'Formatting document...', delay: 600 },
-      { progress: 95, stage: 'Finalizing report...', delay: 500 },
-      { progress: 100, stage: 'Complete!', delay: 300 },
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.width
+    const margin = 20
+    let yPos = 20
+
+    // Get user info from localStorage (set by Liminal auth)
+    const userEmail = localStorage.getItem('userEmail') || 'user@example.com'
+    const userId = dashboardData.transactions[0]?.user_id || 'N/A'
+
+    // Title
+    doc.setFontSize(24)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Financial Report', margin, yPos)
+    
+    yPos += 10
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 100, 100)
+    const now = new Date()
+    const reportDate = now.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+    doc.text(`Generated: ${reportDate}`, margin, yPos)
+    
+    yPos += 15
+    
+    // User Information Section
+    doc.setFillColor(245, 245, 244)
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 20, 'F')
+    yPos += 8
+    
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text('Account Information', margin + 5, yPos)
+    yPos += 7
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(60, 60, 60)
+    doc.text(`Email: ${userEmail}`, margin + 5, yPos)
+    yPos += 5
+    doc.text(`User ID: ${userId}`, margin + 5, yPos)
+    yPos += 5
+    doc.text(`USD Balance: $${balances.USD.toFixed(2)}`, margin + 5, yPos)
+    yPos += 5
+    doc.text(`LIL Balance: ${balances.LIL.toFixed(2)} LIL`, margin + 5, yPos)
+    
+    yPos += 15
+    
+    // Divider
+    doc.setDrawColor(200, 200, 200)
+    doc.line(margin, yPos, pageWidth - margin, yPos)
+    yPos += 15
+
+    // Summary Section
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text('Summary', margin, yPos)
+    yPos += 10
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    const summaryItems = [
+      `Total Transactions: ${dashboardData.summary.total_transactions}`,
+      `Total Spent: $${formatNumber(dashboardData.summary.total_spent)}`,
+      `Total Received: $${formatNumber(dashboardData.summary.total_received)}`,
+      `Monthly Subscriptions: $${formatNumber(dashboardData.summary.monthly_subscription_cost)}`,
+      `Active Goals: ${dashboardData.summary.active_goals}`,
+      `Active Budgets: ${dashboardData.summary.active_budgets}`
     ]
+    
+    summaryItems.forEach(item => {
+      doc.text(item, margin + 5, yPos)
+      yPos += 7
+    })
+    yPos += 10
 
-    for (const { progress, stage, delay } of stages) {
-      setExportStage(stage)
-      setExportProgress(progress)
-      await new Promise(resolve => setTimeout(resolve, delay))
+    // Subscriptions Section
+    if (dashboardData.subscriptions.length > 0) {
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Subscriptions', margin, yPos)
+      yPos += 10
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      
+      dashboardData.subscriptions.slice(0, 10).forEach(sub => {
+        if (yPos > 270) {
+          doc.addPage()
+          yPos = 20
+        }
+        doc.text(`${sub.name}`, margin + 5, yPos)
+        doc.text(`$${formatNumber(sub.amount)} ${sub.currency}`, pageWidth - margin - 30, yPos, { align: 'right' })
+        doc.setTextColor(100, 100, 100)
+        doc.text(sub.frequency, pageWidth - margin - 5, yPos, { align: 'right' })
+        doc.setTextColor(0, 0, 0)
+        yPos += 7
+      })
+      yPos += 10
     }
 
-    // Generate and "save" the file (trigger download)
-    const timestamp = new Date().getTime()
-    const filename = `liminal-report-${timestamp}.pdf`
-    const blob = new Blob([''], { type: 'application/pdf' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    // Savings Goals Section
+    if (dashboardData.savings_goals.length > 0) {
+      if (yPos > 240) {
+        doc.addPage()
+        yPos = 20
+      }
 
-    // Close modal after completion
-    await new Promise(resolve => setTimeout(resolve, 800))
-    setShowExportModal(false)
-    setExportProgress(0)
-    setExportStage('')
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Savings Goals', margin, yPos)
+      yPos += 10
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      
+      dashboardData.savings_goals.forEach(goal => {
+        if (yPos > 270) {
+          doc.addPage()
+          yPos = 20
+        }
+        doc.text(`${goal.name}`, margin + 5, yPos)
+        const progress = calculateProgress(goal.current_amount, goal.target_amount)
+        doc.text(`$${formatNumber(goal.current_amount)} / $${formatNumber(goal.target_amount)} (${progress.toFixed(0)}%)`, pageWidth - margin - 5, yPos, { align: 'right' })
+        yPos += 7
+      })
+      yPos += 10
+    }
+
+    // Budgets Section
+    if (dashboardData.budgets.length > 0) {
+      if (yPos > 240) {
+        doc.addPage()
+        yPos = 20
+      }
+
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Budgets', margin, yPos)
+      yPos += 10
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      
+      dashboardData.budgets.forEach(budget => {
+        if (yPos > 270) {
+          doc.addPage()
+          yPos = 20
+        }
+        doc.text(`${budget.name}`, margin + 5, yPos)
+        doc.text(`$${formatNumber(budget.limit_amount)}`, pageWidth - margin - 5, yPos, { align: 'right' })
+        doc.setTextColor(100, 100, 100)
+        yPos += 5
+        doc.setFontSize(8)
+        doc.text(`${formatDate(budget.start_date)} - ${formatDate(budget.end_date)}`, margin + 5, yPos)
+        doc.setFontSize(9)
+        doc.setTextColor(0, 0, 0)
+        yPos += 7
+      })
+      yPos += 10
+    }
+
+    // Recent Transactions Section
+    if (dashboardData.transactions.length > 0) {
+      if (yPos > 200) {
+        doc.addPage()
+        yPos = 20
+      }
+
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Recent Transactions', margin, yPos)
+      yPos += 10
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      
+      dashboardData.transactions.slice(0, 15).forEach(tx => {
+        if (yPos > 270) {
+          doc.addPage()
+          yPos = 20
+        }
+        
+        const sign = tx.direction === 'credit' ? '+' : '-'
+        const color = tx.direction === 'credit' ? [34, 197, 94] : [220, 38, 38]
+        
+        doc.text(tx.note || tx.type, margin + 5, yPos)
+        doc.setTextColor(...color)
+        doc.text(`${sign}$${tx.amount} ${tx.currency}`, pageWidth - margin - 5, yPos, { align: 'right' })
+        doc.setTextColor(100, 100, 100)
+        yPos += 5
+        doc.setFontSize(8)
+        doc.text(formatDate(tx.created_at), margin + 5, yPos)
+        doc.setFontSize(9)
+        doc.setTextColor(0, 0, 0)
+        yPos += 7
+      })
+    }
+
+    // Add footer to all pages
+    const pageCount = doc.getNumberOfPages()
+    const pageHeight = doc.internal.pageSize.height
+    
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(150, 150, 150)
+      doc.text(
+        `${userEmail} | Generated ${reportDate}`,
+        margin,
+        pageHeight - 10
+      )
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        pageWidth - margin,
+        pageHeight - 10,
+        { align: 'right' }
+      )
+    }
+
+    // Save the PDF
+    const filename = `financial-report-${now.toISOString().split('T')[0]}.pdf`
+    doc.save(filename)
+  }
+
+  // Animation variants
+  const fadeInUp = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 }
+  }
+
+  const staggerContainer = {
+    animate: {
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  }
+
+  const scaleIn = {
+    initial: { opacity: 0, scale: 0.9 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 0.9 }
+  }
+
+  const slideIn = {
+    initial: { opacity: 0, x: -20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: 20 }
   }
 
   return (
@@ -421,79 +684,160 @@ function App() {
           {/* Tab Navigation */}
           {dashboardData && (
             <div className="tab-navigation">
-              <button
+              <motion.button 
                 className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
                 onClick={() => setActiveTab('dashboard')}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
                 <Folder size={18} />Dashboard
-              </button>
-              <button
+              </motion.button>
+              <motion.button 
                 className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
                 onClick={() => setActiveTab('analytics')}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
               >
                 <BarChart3 size={18} />Analytics
-              </button>
+              </motion.button>
             </div>
           )}
         </header>
 
-        {error && (
-          <div className="error-banner">
-            <span><AlertTriangle size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />{error}</span>
-            <button onClick={() => fetchDashboardData()}>Retry</button>
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {error && (
+            <motion.div 
+              className="error-banner"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <span><AlertTriangle size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />{error}</span>
+              <button onClick={() => fetchDashboardData()}>Retry</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Unified Dashboard Content */}
-        {dashboardData && activeTab === 'dashboard' && (
-          <div className="unified-content">
-            {/* Balance Display */}
-            <div className="balance-section">
-              <p className="page-title">Your Balance</p>
-              <h1 className="balance-amount">
-                {selectedCurrency === 'USD' ? '$' : ''}{balances[selectedCurrency].toFixed(2)} {selectedCurrency === 'LIL' ? 'LIL' : ''}
-              </h1>
-              <div className="currency-pills">
-                <button 
-                  className={`currency-pill ${selectedCurrency === 'USD' ? 'active' : ''}`}
-                  onClick={() => setSelectedCurrency('USD')}
+        <AnimatePresence mode="wait">
+          {dashboardData && activeTab === 'dashboard' && (
+            <motion.div 
+              className="unified-content"
+              key="dashboard"
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={fadeInUp}
+              transition={{ duration: 0.4 }}
+            >
+              {/* Balance Display */}
+              <motion.div 
+                className="balance-section"
+                variants={scaleIn}
+                initial="initial"
+                animate="animate"
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <motion.p 
+                  className="page-title"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
                 >
-                  USD
-                </button>
-                <button 
-                  className={`currency-pill ${selectedCurrency === 'LIL' ? 'active' : ''}`}
-                  onClick={() => setSelectedCurrency('LIL')}
+                  Your Balance
+                </motion.p>
+                <motion.h1 
+                  className="balance-amount"
+                  key={selectedCurrency}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
                 >
-                  LIL
-                </button>
-              </div>
-            </div>
+                  {selectedCurrency === 'USD' ? '$' : ''}{balances[selectedCurrency].toFixed(2)} {selectedCurrency === 'LIL' ? 'LIL' : ''}
+                </motion.h1>
+                <div className="currency-pills">
+                  <motion.button 
+                    className={`currency-pill ${selectedCurrency === 'USD' ? 'active' : ''}`}
+                    onClick={() => setSelectedCurrency('USD')}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  >
+                    USD
+                  </motion.button>
+                  <motion.button 
+                    className={`currency-pill ${selectedCurrency === 'LIL' ? 'active' : ''}`}
+                    onClick={() => setSelectedCurrency('LIL')}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  >
+                    LIL
+                  </motion.button>
+                </div>
+              </motion.div>
 
             {/* Savings Goals Section */}
-            <section className="dashboard-section" data-section="goals">
-              <div className="section-title-wrapper clickable" onClick={() => toggleSection('goals')}>
+            <motion.section 
+              className="dashboard-section" 
+              data-section="goals"
+              variants={fadeInUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.2 }}
+            >
+              <motion.div 
+                className="section-title-wrapper clickable" 
+                onClick={() => toggleSection('goals')}
+                whileHover={{ x: 5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <h2 className="section-title"><Target size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Savings Goals</h2>
                 <div className="section-header-right">
                   <div className="section-meta">
                     <span className="highlight">{dashboardData.summary.active_goals}</span> active ·
                     <span className="highlight"> {dashboardData.summary.completed_goals}</span> completed
                   </div>
-                  <span className="collapse-icon">
-                    {collapsedSections['goals'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-                  </span>
+                  <motion.span 
+                    className="collapse-icon"
+                    animate={{ rotate: collapsedSections['goals'] ? 0 : 180 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ChevronDown size={20} />
+                  </motion.span>
                 </div>
-              </div>
-              {!collapsedSections['goals'] && (dashboardData.savings_goals.length > 0 ? (
-                <div className="goals-grid">
-                  {dashboardData.savings_goals.map((goal, index) => (
-                    <div key={goal.id} className={`goal-card ${goal.is_completed ? 'completed' : ''}`} style={{ animationDelay: `${index * 50}ms` }}>
+              </motion.div>
+              <AnimatePresence>
+                {!collapsedSections['goals'] && (dashboardData.savings_goals.length > 0 ? (
+                  <motion.div 
+                    className="goals-grid"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {dashboardData.savings_goals.map((goal, index) => (
+                      <motion.div 
+                        key={goal.id} 
+                        className={`goal-card ${goal.is_completed ? 'completed' : ''}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        whileHover={{ scale: 1.02, y: -5 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
                       <div className="goal-name">{goal.name}</div>
                       {goal.category && <div className="goal-category">{goal.category}</div>}
                       <div className="goal-progress">
                         <div className="progress-bar">
-                          <div
+                          <motion.div
                             className="progress-fill"
-                            style={{ width: `${calculateProgress(goal.current_amount, goal.target_amount)}%` }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${calculateProgress(goal.current_amount, goal.target_amount)}%` }}
+                            transition={{ duration: 1, delay: index * 0.1 + 0.3, ease: "easeOut" }}
                           />
                         </div>
                         <div className="progress-text">
@@ -503,34 +847,71 @@ function App() {
                       <div className="goal-deadline">
                         {calculateDeadlineDue(goal.deadline)}
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No savings goals yet</p>
-                  <p className="hint">Ask Nim to help you set a savings goal!</p>
-                </div>
-              ))}
-            </section>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    className="empty-state"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No savings goals yet</p>
+                    <p className="hint">Ask Nim to help you set a savings goal!</p>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.section>
 
             {/* Budgets Section */}
-            <section className="dashboard-section" data-section="budgets">
-              <div className="section-title-wrapper clickable" onClick={() => toggleSection('budgets')}>
+            <motion.section 
+              className="dashboard-section" 
+              data-section="budgets"
+              variants={fadeInUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.3 }}
+            >
+              <motion.div 
+                className="section-title-wrapper clickable" 
+                onClick={() => toggleSection('budgets')}
+                whileHover={{ x: 5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <h2 className="section-title"><Wallet size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Budgets</h2>
                 <div className="section-header-right">
                   <div className="section-meta">
                     <span className="highlight">{dashboardData.summary.active_budgets}</span> active
                   </div>
-                  <span className="collapse-icon">
-                    {collapsedSections['budgets'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-                  </span>
+                  <motion.span 
+                    className="collapse-icon"
+                    animate={{ rotate: collapsedSections['budgets'] ? 0 : 180 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ChevronDown size={20} />
+                  </motion.span>
                 </div>
-              </div>
-              {!collapsedSections['budgets'] && (dashboardData.budgets.length > 0 ? (
-                <div className="budgets-grid">
-                  {dashboardData.budgets.map((budget, index) => (
-                    <div key={budget.id} className={`budget-card ${budget.is_active ? 'active' : 'inactive'}`} style={{ animationDelay: `${index * 50}ms` }}>
+              </motion.div>
+              <AnimatePresence>
+                {!collapsedSections['budgets'] && (dashboardData.budgets.length > 0 ? (
+                  <motion.div 
+                    className="budgets-grid"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {dashboardData.budgets.map((budget, index) => (
+                      <motion.div 
+                        key={budget.id} 
+                        className={`budget-card ${budget.is_active ? 'active' : 'inactive'}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        whileHover={{ scale: 1.02, y: -5 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
                       <div className="budget-header">
                         <span className="budget-name">{budget.name}</span>
                       </div>
@@ -542,36 +923,75 @@ function App() {
                       <div className="budget-period">
                         {formatDate(budget.start_date)} - {formatDate(budget.end_date)}
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <p><Wallet size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No budgets set</p>
-                  <p className="hint">Ask Nim to help you create a budget!</p>
-                </div>
-              ))}
-            </section>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    className="empty-state"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <p><Wallet size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No budgets set</p>
+                    <p className="hint">Ask Nim to help you create a budget!</p>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.section>
 
             {/* Horizontal Layout: Subscriptions and Transactions */}
-            <div className="horizontal-sections">
+            <motion.div 
+              className="horizontal-sections"
+              variants={staggerContainer}
+              initial="initial"
+              animate="animate"
+            >
               {/* Subscriptions Section */}
-              <section className="dashboard-section half-width" data-section="subscriptions">
-                <div className="section-title-wrapper clickable" onClick={() => toggleSection('subscriptions')}>
+              <motion.section 
+                className="dashboard-section half-width" 
+                data-section="subscriptions"
+                variants={slideIn}
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <motion.div 
+                  className="section-title-wrapper clickable" 
+                  onClick={() => toggleSection('subscriptions')}
+                  whileHover={{ x: 5 }}
+                >
                   <h2 className="section-title"><Smartphone size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Subscriptions</h2>
                   <div className="section-header-right">
                     <div className="section-meta">
                       Total: <span className="highlight">${formatNumber(dashboardData.summary.monthly_subscription_cost)}/month</span>
                     </div>
-                    <span className="collapse-icon">
-                      {collapsedSections['subscriptions'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-                    </span>
+                    <motion.span 
+                      className="collapse-icon"
+                      animate={{ rotate: collapsedSections['subscriptions'] ? 0 : 180 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ChevronDown size={20} />
+                    </motion.span>
                   </div>
-                </div>
-                {!collapsedSections['subscriptions'] && (dashboardData.subscriptions.length > 0 ? (
-                  <div className="subscriptions-list">
-                    {dashboardData.subscriptions.map((sub, index) => (
-                      <div key={sub.id} className="subscription-card" style={{ animationDelay: `${index * 50}ms` }}>
+                </motion.div>
+                <AnimatePresence>
+                  {!collapsedSections['subscriptions'] && (dashboardData.subscriptions.length > 0 ? (
+                    <motion.div 
+                      className="subscriptions-list"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {dashboardData.subscriptions.map((sub, index) => (
+                        <motion.div 
+                          key={sub.id} 
+                          className="subscription-card"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ scale: 1.02, x: 5 }}
+                        >
                         <div className="sub-details">
                           <div className="sub-name-row">
                             <span className="sub-name">{sub.name.replace(' subscription', '')}</span>
@@ -585,34 +1005,59 @@ function App() {
                           <span className="amount">{formatCurrency(sub.amount, sub.currency)}</span>
                           <span className="frequency">{getFrequencyLabel(sub.frequency)}</span>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <p><Smartphone size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No subscriptions tracked yet</p>
-                    <p className="hint">Ask Nim to help you track a subscription!</p>
-                  </div>
-                ))}
-              </section>
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      className="empty-state"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <p><Smartphone size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No subscriptions tracked yet</p>
+                      <p className="hint">Ask Nim to help you track a subscription!</p>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.section>
 
               {/* Transactions Section */}
-              <section className="dashboard-section half-width" data-section="transactions">
-                <div className="section-title-wrapper clickable" onClick={() => toggleSection('transactions')}>
+              <motion.section 
+                className="dashboard-section half-width" 
+                data-section="transactions"
+                variants={slideIn}
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                <motion.div 
+                  className="section-title-wrapper clickable" 
+                  onClick={() => toggleSection('transactions')}
+                  whileHover={{ x: 5 }}
+                >
                   <h2 className="section-title"><Banknote size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Recent Transactions</h2>
                   <div className="section-header-right">
                     <div className="section-actions">
                       <div className="filter-dropdown" onClick={(e) => e.stopPropagation()}>
-                        <button
+                        <motion.button 
                           className={`filter-trigger ${txFilter !== 'all' ? 'has-filter' : ''}`}
                           onClick={() => setShowTxFilter(!showTxFilter)}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
                         >
                           <Filter size={16} />
                           {txFilter !== 'all' && <span className="filter-badge">{txFilter === 'credit' ? 'In' : 'Out'}</span>}
-                        </button>
-                        {showTxFilter && (
-                          <div className="filter-menu">
-                            <button
+                        </motion.button>
+                        <AnimatePresence>
+                          {showTxFilter && (
+                            <motion.div 
+                              className="filter-menu"
+                              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                            <button 
                               className={`filter-option ${txFilter === 'all' ? 'active' : ''}`}
                               onClick={() => { setTxFilter('all'); setShowTxFilter(false); }}
                             >
@@ -630,71 +1075,112 @@ function App() {
                             >
                               <ArrowUp size={14} /> Sent
                             </button>
-                          </div>
-                        )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
-                    <span className="collapse-icon">
-                      {collapsedSections['transactions'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-                    </span>
+                    <motion.span 
+                      className="collapse-icon"
+                      animate={{ rotate: collapsedSections['transactions'] ? 0 : 180 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ChevronDown size={20} />
+                    </motion.span>
                   </div>
-                </div>
-                {!collapsedSections['transactions'] && (dashboardData.transactions.length > 0 ? (
-                  <div className="transactions-list">
+                </motion.div>
+                <AnimatePresence>
+                  {!collapsedSections['transactions'] && (dashboardData.transactions.length > 0 ? (
+                    <motion.div 
+                      className="transactions-list"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
                     {dashboardData.transactions
                       .filter(tx => txFilter === 'all' || tx.direction === txFilter)
                       .slice(0, 10)
                       .map((tx, index) => (
-                        <div key={tx.id} className="transaction-item" style={{ animationDelay: `${index * 30}ms` }}>
-                          <div className={`tx-direction ${tx.direction}`}>
-                            {getDirectionIcon(tx.direction)}
-                          </div>
-                          <div className="tx-details">
-                            <div className="tx-note">{tx.note || `${tx.type} transaction`}</div>
-                            <div className="tx-meta">
-                              <span className="tx-date">{formatDate(tx.created_at)}</span>
-                            </div>
-                          </div>
-                          <div className={`tx-amount ${tx.direction}`}>
-                            {tx.direction === 'credit' ? '+' : ''}{tx.amount} {tx.currency}
-                          </div>
-                          <div className={`tx-status ${getStatusColor(tx.status)}`}>
-                            {tx.status}
+                      <motion.div 
+                        key={tx.id} 
+                        className="transaction-item"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ scale: 1.02, x: 5 }}
+                        layout
+                      >
+                        <div className={`tx-direction ${tx.direction}`}>
+                          {getDirectionIcon(tx.direction)}
+                        </div>
+                        <div className="tx-details">
+                          <div className="tx-note">{tx.note || `${tx.type} transaction`}</div>
+                          <div className="tx-meta">
+                            <span className="tx-date">{formatDate(tx.created_at)}</span>
                           </div>
                         </div>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="empty-state">
-                    <p><Banknote size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No transactions yet</p>
-                    <p className="hint">Your transaction history will appear here</p>
-                  </div>
-                ))}
-              </section>
-            </div>
-          </div>
+                        <div className={`tx-amount ${tx.direction}`}>
+                          {tx.direction === 'credit' ? '+' : ''}{tx.amount} {tx.currency}
+                        </div>
+                        <div className={`tx-status ${getStatusColor(tx.status)}`}>
+                          {tx.status}
+                        </div>
+                      </motion.div>
+                    ))}
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      className="empty-state"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <p><Banknote size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No transactions yet</p>
+                      <p className="hint">Your transaction history will appear here</p>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.section>
+            </motion.div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {/* Analytics Tab */}
-        {dashboardData && activeTab === 'analytics' && (
-          <div className="unified-content analytics-view">
-            {/* Expenses by Category - Pie Chart */}
-            <section className="dashboard-section analytics-section">
-              <div className="section-title-wrapper">
-                <h2 className="section-title"><PiggyBank size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Expenses by Category</h2>
-              </div>
-              <div className="chart-container pie-chart">
-                {getExpensesByCategory().length > 0 ? (
-                  <div className="pie-chart-wrapper">
+        <AnimatePresence mode="wait">
+          {dashboardData && activeTab === 'analytics' && (
+            <motion.div 
+              className="unified-content analytics-view"
+              key="analytics"
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={fadeInUp}
+              transition={{ duration: 0.4 }}
+            >
+              <div className="analytics-charts-row">
+              {/* Expenses by Category - Pie Chart */}
+              <motion.section 
+                className="dashboard-section analytics-section chart-section"
+                variants={scaleIn}
+                initial="initial"
+                animate="animate"
+                transition={{ delay: 0.2 }}
+              >
+                <div className="section-title-wrapper">
+                  <h2 className="section-title"><PiggyBank size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Expenses by Category</h2>
+                </div>
+                <div className="chart-container pie-chart">
+                  <div className="pie-chart-wrapper" style={{ position: 'relative' }}>
                     <svg viewBox="0 0 200 200" className="pie-svg">
                       {(() => {
-                        const data = getExpensesByCategory()
+                        const data = mockExpensesByCategory
                         const total = data.reduce((sum, item) => sum + item.value, 0)
                         let currentAngle = 0
                         const colors = ['#FF6D00', '#9BC1F3', '#9E8C78', '#FFB347', '#7E57C2', '#22C55E']
 
                         return data.map((item, i) => {
-                          const percentage = (item.value / total) * 100
                           const angle = (item.value / total) * 360
                           const startAngle = currentAngle
                           currentAngle += angle
@@ -704,218 +1190,297 @@ function App() {
                           const x2 = 100 + 80 * Math.cos((startAngle + angle - 90) * Math.PI / 180)
                           const y2 = 100 + 80 * Math.sin((startAngle + angle - 90) * Math.PI / 180)
                           const largeArc = angle > 180 ? 1 : 0
-
+                          const percentage = ((item.value / total) * 100).toFixed(1)
+                          
                           return (
-                            <path
+                            <motion.path
                               key={i}
                               d={`M 100 100 L ${x1} ${y1} A 80 80 0 ${largeArc} 1 ${x2} ${y2} Z`}
                               fill={colors[i % colors.length]}
-                              opacity="0.85"
+                              opacity={hoveredSlice?.name === item.name ? 1 : 0.85}
                               stroke="white"
                               strokeWidth="2"
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: hoveredSlice?.name === item.name ? 1.05 : 1, opacity: hoveredSlice?.name === item.name ? 1 : 0.85 }}
+                              transition={{ delay: i * 0.1 + 0.3, duration: 0.5 }}
+                              onMouseEnter={() => setHoveredSlice({ name: item.name, value: item.value, percentage })}
+                              onMouseLeave={() => setHoveredSlice(null)}
+                              style={{ cursor: 'pointer' }}
                             />
                           )
                         })
                       })()}
                     </svg>
-                    <div className="pie-legend">
-                      {getExpensesByCategory().map((item, i) => {
-                        const colors = ['#FF6D00', '#9BC1F3', '#9E8C78', '#FFB347', '#7E57C2', '#22C55E']
-                        const total = getExpensesByCategory().reduce((sum, x) => sum + x.value, 0)
-                        const percentage = ((item.value / total) * 100).toFixed(1)
-                        return (
-                          <div key={i} className="legend-item">
-                            <span className="legend-color" style={{ backgroundColor: colors[i % colors.length] }}></span>
-                            <span className="legend-label">{item.name}</span>
-                            <span className="legend-value">${formatNumber(item.value)} ({percentage}%)</span>
-                          </div>
-                        )
-                      })}
-                    </div>
+                    {hoveredSlice && (
+                      <motion.div
+                        className="pie-tooltip"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                      >
+                        <div className="tooltip-name">{hoveredSlice.name}</div>
+                        <div className="tooltip-value">${formatNumber(hoveredSlice.value)}</div>
+                        <div className="tooltip-percentage">{hoveredSlice.percentage}%</div>
+                      </motion.div>
+                    )}
                   </div>
-                ) : (
-                  <div className="empty-state">
-                    <p>No expense data available</p>
-                  </div>
-                )}
               </div>
-            </section>
+            </motion.section>
 
             {/* Spending Over Time - Line Chart */}
-            <section className="dashboard-section analytics-section">
-              <div className="section-title-wrapper">
-                <h2 className="section-title"><TrendingDown size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Spending Trend (6 Months)</h2>
+            <motion.section 
+              className="dashboard-section analytics-section chart-section"
+              variants={fadeInUp}
+              initial="initial"
+              animate="animate"
+              transition={{ delay: 0.3 }}
+            >
+              <div className="section-title-wrapper" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 className="section-title" style={{ marginBottom: 0 }}><TrendingDown size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Spending Trend</h2>
+                <motion.button 
+                  className="export-btn-small" 
+                  onClick={exportReport}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
+                  <Folder size={16} />
+                  <span>Export</span>
+                </motion.button>
               </div>
               <div className="chart-container line-chart">
-                {getSpendingOverTime().length > 0 ? (
                   <div className="line-chart-wrapper">
                     <svg viewBox="0 0 600 300" className="line-svg">
                       {(() => {
-                        const data = getSpendingOverTime()
-                        const maxAmount = Math.max(...data.map(d => d.amount), 100)
+                        const data = mockSpendingOverTime
+                        const maxAmount = Math.max(...data.map(d => d.amount))
                         const padding = 40
                         const width = 600 - padding * 2
                         const height = 300 - padding * 2
-                        const stepX = width / (data.length - 1 || 1)
-
+                        const stepX = width / (data.length - 1)
+                        
                         const points = data.map((d, i) => {
                           const x = padding + i * stepX
                           const y = padding + height - (d.amount / maxAmount) * height
-                          return `${x},${y}`
-                        }).join(' ')
-
-                        const areaPoints = `${padding},${padding + height} ${points} ${padding + width},${padding + height}`
-
+                          return { x, y, amount: d.amount, month: d.month }
+                        })
+                        
+                        const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+                        
                         return (
                           <g>
                             {/* Grid lines */}
-                            {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
-                              <g key={i}>
-                                <line
-                                  x1={padding}
-                                  y1={padding + height * ratio}
-                                  x2={padding + width}
-                                  y2={padding + height * ratio}
-                                  stroke="#E5E5E5"
-                                  strokeWidth="1"
-                                />
-                                <text
-                                  x={padding - 10}
-                                  y={padding + height * ratio + 4}
-                                  textAnchor="end"
-                                  fontSize="12"
-                                  fill="#737373"
-                                >
-                                  ${(maxAmount * (1 - ratio)).toFixed(0)}
-                                </text>
-                              </g>
+                            {[0, 1, 2, 3, 4].map((i) => (
+                              <line
+                                key={`grid-${i}`}
+                                x1={padding}
+                                y1={padding + (height / 4) * i}
+                                x2={padding + width}
+                                y2={padding + (height / 4) * i}
+                                stroke="#E5E5E5"
+                                strokeWidth="1"
+                              />
                             ))}
-
-                            {/* Area fill */}
-                            <polygon
-                              points={areaPoints}
-                              fill="#FF6D00"
-                              opacity="0.1"
-                            />
-
-                            {/* Line */}
-                            <polyline
-                              points={points}
+                            
+                            {/* Line path */}
+                            <motion.path
+                              d={pathD}
                               fill="none"
                               stroke="#FF6D00"
                               strokeWidth="3"
                               strokeLinecap="round"
-                              strokeLinejoin="round"
+                              initial={{ pathLength: 0 }}
+                              animate={{ pathLength: 1 }}
+                              transition={{ duration: 1.5, ease: "easeInOut" }}
                             />
-
+                            
+                            {/* Area under curve */}
+                            <motion.path
+                              d={`${pathD} L ${padding + width} ${padding + height} L ${padding} ${padding + height} Z`}
+                              fill="url(#gradient)"
+                              opacity="0.2"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 0.2 }}
+                              transition={{ duration: 1, delay: 0.5 }}
+                            />
+                            
+                            <defs>
+                              <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#FF6D00" />
+                                <stop offset="100%" stopColor="#FF6D00" stopOpacity="0" />
+                              </linearGradient>
+                            </defs>
+                            
                             {/* Data points */}
-                            {data.map((d, i) => {
-                              const x = padding + i * stepX
-                              const y = padding + height - (d.amount / maxAmount) * height
-                              return (
-                                <g key={i}>
-                                  <circle
-                                    cx={x}
-                                    cy={y}
-                                    r="5"
-                                    fill="#FF6D00"
-                                    stroke="white"
-                                    strokeWidth="2"
-                                  />
-                                  <text
-                                    x={x}
-                                    y={padding + height + 20}
-                                    textAnchor="middle"
-                                    fontSize="12"
-                                    fill="#737373"
-                                  >
-                                    {d.month}
-                                  </text>
-                                </g>
-                              )
-                            })}
+                            {points.map((p, i) => (
+                              <g key={i}>
+                                <motion.circle
+                                  cx={p.x}
+                                  cy={p.y}
+                                  r="5"
+                                  fill="#FF6D00"
+                                  stroke="white"
+                                  strokeWidth="2"
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ delay: i * 0.1 + 0.5, type: "spring" }}
+                                  whileHover={{ scale: 1.5 }}
+                                />
+                                <text
+                                  x={p.x}
+                                  y={p.y - 15}
+                                  textAnchor="middle"
+                                  fontSize="12"
+                                  fill="#737373"
+                                  fontWeight="500"
+                                >
+                                  ${(p.amount / 1000).toFixed(1)}k
+                                </text>
+                                <text
+                                  x={p.x}
+                                  y={padding + height + 20}
+                                  textAnchor="middle"
+                                  fontSize="12"
+                                  fill="#737373"
+                                >
+                                  {p.month}
+                                </text>
+                              </g>
+                            ))}
                           </g>
                         )
                       })()}
                     </svg>
                   </div>
-                ) : (
-                  <div className="empty-state">
-                    <p>No spending data available</p>
-                  </div>
-                )}
               </div>
-            </section>
+            </motion.section>
+            </div>
 
-            {/* Goal Timeline */}
-            <section className="dashboard-section analytics-section">
-              <div className="section-title-wrapper">
-                <h2 className="section-title"><Target size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Goal Timeline</h2>
-              </div>
-              <div className="goal-timeline">
-                {getGoalTimeline().length > 0 ? (
-                  <div className="timeline-wrapper">
-                    {getGoalTimeline().map((goal, i) => (
-                      <div key={i} className="timeline-item">
-                        <div className="timeline-marker" style={{
-                          background: goal.progress >= 75 ? '#22C55E' : goal.progress >= 50 ? '#FF6D00' : '#9BC1F3'
-                        }}>
-                          <Target size={16} />
-                        </div>
-                        <div className="timeline-content">
-                          <div className="timeline-header">
-                            <h4>{goal.name}</h4>
-                            <span className="timeline-date">{formatDate(goal.deadline.toISOString())}</span>
-                          </div>
-                          <div className="timeline-progress">
-                            <div className="progress-bar">
-                              <div className="progress-fill" style={{ width: `${goal.progress}%` }} />
-                            </div>
-                            <span className="progress-label">
-                              ${formatNumber(goal.current)} / ${formatNumber(goal.target)} ({goal.progress.toFixed(0)}%)
-                            </span>
-                          </div>
-                          <div className="timeline-eta">
-                            {calculateDeadlineDue(goal.deadline.toISOString())}
-                          </div>
-                        </div>
+            {/* Second row of charts */}
+            <div className="analytics-charts-row">
+              {/* Income vs Expenses - Bar Chart */}
+              <motion.section 
+                className="dashboard-section analytics-section chart-section"
+                variants={fadeInUp}
+                initial="initial"
+                animate="animate"
+                transition={{ delay: 0.4 }}
+              >
+                <div className="section-title-wrapper">
+                  <h2 className="section-title"><BarChart3 size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Income vs Expenses</h2>
+                </div>
+                <div className="chart-container bar-chart">
+                  <div className="bar-chart-wrapper">
+                    <div className="income-expense-chart">
+                      <div className="chart-y-axis">
+                        {['$5k', '$4k', '$3k', '$2k', '$1k', '$0'].map((label, i) => (
+                          <span key={i} className="y-label">{label}</span>
+                        ))}
                       </div>
-                    ))}
+                      <div className="chart-bars-area">
+                        {mockIncomeVsExpenses.map((d, i) => {
+                          const maxAmount = Math.max(...mockIncomeVsExpenses.flatMap(x => [x.income, x.expenses]))
+                          const incomePercent = (d.income / maxAmount) * 100
+                          const expensePercent = (d.expenses / maxAmount) * 100
+                          
+                          return (
+                            <div key={i} className="bar-group">
+                              <div className="bars-wrapper">
+                                <motion.div 
+                                  className="bar income-bar"
+                                  initial={{ height: 0 }}
+                                  animate={{ height: `${incomePercent}%` }}
+                                  transition={{ duration: 0.8, delay: i * 0.1 }}
+                                />
+                                <motion.div 
+                                  className="bar expense-bar"
+                                  initial={{ height: 0 }}
+                                  animate={{ height: `${expensePercent}%` }}
+                                  transition={{ duration: 0.8, delay: i * 0.1 + 0.05 }}
+                                />
+                              </div>
+                              <span className="month-label">{d.month}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    <div className="bar-legend">
+                      <div className="legend-item">
+                        <span className="legend-color" style={{ backgroundColor: '#22C55E' }}></span>
+                        <span className="legend-label">Income</span>
+                      </div>
+                      <div className="legend-item">
+                        <span className="legend-color" style={{ backgroundColor: '#FF6D00' }}></span>
+                        <span className="legend-label">Expenses</span>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="empty-state">
-                    <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No active goals with deadlines</p>
-                    <p className="hint">Set goals with target dates to see your timeline!</p>
-                  </div>
-                )}
-              </div>
-            </section>
+                </div>
+              </motion.section>
 
-            {/* Export Reports */}
-            <section className="dashboard-section analytics-section">
-              <div className="section-title-wrapper">
-                <h2 className="section-title"><Folder size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Export Reports</h2>
-              </div>
-              <div className="export-actions">
-                <button className="export-btn" onClick={exportReport}>
-                  <Folder size={18} />
-                  <div className="export-content">
-                    <h4>Generate PDF Report</h4>
-                    <p>Export {new Date().toLocaleDateString('en-US', { month: 'long' })}'s spending summary</p>
+              {/* Weekly Activity - Vertical Bar Chart */}
+              <motion.section 
+                className="dashboard-section analytics-section chart-section"
+                variants={fadeInUp}
+                initial="initial"
+                animate="animate"
+                transition={{ delay: 0.5 }}
+              >
+                <div className="section-title-wrapper">
+                  <h2 className="section-title"><CreditCard size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Weekly Activity</h2>
+                </div>
+                <div className="chart-container activity-chart">
+                  <div className="activity-chart-wrapper">
+                    <div className="activity-bars-container">
+                      {mockWeeklyActivity.map((d, i) => {
+                        const maxTransactions = Math.max(...mockWeeklyActivity.map(x => x.transactions))
+                        const heightPercent = (d.transactions / maxTransactions) * 100
+                        const intensity = d.transactions / maxTransactions
+                        const color = `rgba(255, 109, 0, ${0.4 + intensity * 0.6})`
+                        
+                        return (
+                          <div key={i} className="activity-bar-group">
+                            <span className="bar-value">{d.transactions}</span>
+                            <motion.div 
+                              className="activity-bar"
+                              style={{ backgroundColor: color }}
+                              initial={{ height: 0 }}
+                              animate={{ height: `${heightPercent}%` }}
+                              transition={{ duration: 0.6, delay: i * 0.08 }}
+                            />
+                            <span className="bar-day">{d.day}</span>
+                            <span className="bar-amount">${d.amount}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </button>
-              </div>
-            </section>
-          </div>
+                </div>
+              </motion.section>
+            </div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {/* Loading State */}
-        {isLoading && !dashboardData && (
-          <div className="loading-state">
-            <div className="spinner"></div>
-            <p>Loading dashboard...</p>
-          </div>
-        )}
+        <AnimatePresence>
+          {isLoading && !dashboardData && (
+            <motion.div 
+              className="loading-state"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div 
+                className="spinner"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              ></motion.div>
+              <p>Loading dashboard...</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       <NimChat
