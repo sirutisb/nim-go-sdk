@@ -232,9 +232,42 @@ function App() {
     } else if (diffDays < 30) {
       const weeks = Math.floor(diffDays / 7)
       return `Due in ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`
-    } else {
+    } else if (diffDays < 365) {
       const months = Math.floor(diffDays / 30)
       return `Due in ${months} ${months === 1 ? 'month' : 'months'}`
+    } else {
+      const years = Math.floor(diffDays / 365)
+      return `Due in ${years} ${years === 1 ? 'year' : 'years'}`
+    }
+  }
+
+  // Calculate deadline due time
+  const calculateDeadlineDue = (deadline: string) => {
+    if (!deadline) return 'No deadline'
+    
+    const deadlineDate = new Date(deadline)
+    const now = new Date()
+    
+    const diffTime = deadlineDate.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays < 0) {
+      return 'Overdue'
+    } else if (diffDays === 0) {
+      return 'Due today'
+    } else if (diffDays === 1) {
+      return 'Due tomorrow'
+    } else if (diffDays < 7) {
+      return `Due in ${diffDays} days`
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7)
+      return `Due in ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30)
+      return `Due in ${months} ${months === 1 ? 'month' : 'months'}`
+    } else {
+      const years = Math.floor(diffDays / 365)
+      return `Due in ${years} ${years === 1 ? 'year' : 'years'}`
     }
   }
 
@@ -342,10 +375,6 @@ function App() {
                 <div className="goals-grid">
                   {dashboardData.savings_goals.map((goal, index) => (
                     <div key={goal.id} className={`goal-card ${goal.is_completed ? 'completed' : ''}`} style={{ animationDelay: `${index * 50}ms` }}>
-                      <div className="goal-header">
-                        <span className="goal-icon">{goal.goal_type === 'savings' ? <PiggyBank size={18} /> : <BarChart3 size={18} />}</span>
-                        <span className={`goal-type ${goal.goal_type}`}>{goal.goal_type}</span>
-                      </div>
                       <div className="goal-name">{goal.name}</div>
                       {goal.category && <div className="goal-category">{goal.category}</div>}
                       <div className="goal-progress">
@@ -360,7 +389,7 @@ function App() {
                         </div>
                       </div>
                       <div className="goal-deadline">
-                        Deadline: {formatDate(goal.deadline)}
+                        {calculateDeadlineDue(goal.deadline)}
                       </div>
                     </div>
                   ))}
