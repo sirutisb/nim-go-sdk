@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
+import { Wallet, Search, Users } from 'lucide-react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { ThinkingIndicator } from './ThinkingIndicator';
@@ -137,21 +138,21 @@ export function ChatPanel({
               <div className="space-y-2 font-body">
                 <button
                   onClick={() => onSendMessage("What's my balance?")}
-                  className="w-full text-left px-3 py-2 rounded-lg bg-white hover:bg-nim-orange/10 text-nim-brown/80 hover:text-nim-orange transition-colors border border-nim-cream hover:border-nim-orange/30"
+                  className="w-full text-left px-3 py-2 rounded-lg bg-white hover:bg-nim-orange/10 text-nim-brown/80 hover:text-nim-orange transition-colors border border-nim-cream hover:border-nim-orange/30 flex items-center gap-2"
                 >
-                  💰 What's my balance?
+                  <Wallet size={14} /> What's my balance?
                 </button>
                 <button
-                  onClick={() => onSendMessage("Show me recent transactions")}
-                  className="w-full text-left px-3 py-2 rounded-lg bg-white hover:bg-nim-orange/10 text-nim-brown/80 hover:text-nim-orange transition-colors border border-nim-cream hover:border-nim-orange/30"
+                  onClick={() => onSendMessage("Research top investment opportunities as of Feb 2026")}
+                  className="w-full text-left px-3 py-2 rounded-lg bg-white hover:bg-nim-orange/10 text-nim-brown/80 hover:text-nim-orange transition-colors border border-nim-cream hover:border-nim-orange/30 flex items-center gap-2"
                 >
-                  📊 Show me recent transactions
+                  <Search size={14} /> Research investments
                 </button>
                 <button
-                  onClick={() => onSendMessage("Analyze my spending for last 30 days")}
-                  className="w-full text-left px-3 py-2 rounded-lg bg-white hover:bg-nim-orange/10 text-nim-brown/80 hover:text-nim-orange transition-colors border border-nim-cream hover:border-nim-orange/30"
+                  onClick={() => onSendMessage("Split dinner with my friends")}
+                  className="w-full text-left px-3 py-2 rounded-lg bg-white hover:bg-nim-orange/10 text-nim-brown/80 hover:text-nim-orange transition-colors border border-nim-cream hover:border-nim-orange/30 flex items-center gap-2"
                 >
-                  📈 Analyze my spending for last 30 days
+                  <Users size={14} /> Split dinner with my friends
                 </button>
               </div>
             </div>
