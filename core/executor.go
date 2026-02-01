@@ -1,8 +1,10 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"text/template"
 )
 
 // ToolExecutor executes Liminal tools (get_balance, send_money, etc.).
@@ -144,7 +146,32 @@ func (t *ExecutorTool) Execute(ctx context.Context, params *ToolParams) (*ToolRe
 	}, nil
 }
 
-// GetSummary returns a formatted summary.
+// GetSummary returns a formatted summary using the template.
 func (t *ExecutorTool) GetSummary(input json.RawMessage) string {
-	return t.definition.SummaryTemplate
+	// If no template, return empty string
+	if t.definition.SummaryTemplate == "" {
+		return ""
+	}
+
+	// Parse input JSON into a map for templating
+	var data map[string]interface{}
+	if err := json.Unmarshal(input, &data); err != nil {
+		// If parsing fails, return the template as-is
+		return t.definition.SummaryTemplate
+	}
+
+	// Create and execute template
+	tmpl, err := template.New("summary").Parse(t.definition.SummaryTemplate)
+	if err != nil {
+		// If template parsing fails, return the template as-is
+		return t.definition.SummaryTemplate
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		// If template execution fails, return the template as-is
+		return t.definition.SummaryTemplate
+	}
+
+	return buf.String()
 }

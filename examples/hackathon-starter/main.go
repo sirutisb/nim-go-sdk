@@ -104,15 +104,24 @@ func main() {
 	//   3. get_vault_rates - Get current savings rates
 	//   4. get_transactions - View transaction history
 	//   5. get_profile - Get user profile info
-	//   6. search_users - Find users by display tag
+	//   6. search_users - Find users by display tag (custom wrapper to handle @)
 	//
 	// WRITE OPERATIONS (require user confirmation):
 	//   7. send_money - Send money to another user
 	//   8. deposit_savings - Deposit funds into savings
 	//   9. withdraw_savings - Withdraw funds from savings
 
-	srv.AddTools(tools.LiminalTools(liminalExecutor)...)
-	log.Println("✅ Added 9 Liminal banking tools")
+	// Add all Liminal tools except search_users (we'll add a custom wrapper)
+	for _, tool := range tools.LiminalTools(liminalExecutor) {
+		toolName := tool.Name()
+		if toolName != "search_users" {
+			srv.AddTool(tool)
+		}
+	}
+
+	// Add our custom search_users wrapper that strips @ from queries
+	srv.AddTool(createSearchUsersWrapper(liminalExecutor))
+	log.Println("✅ Added 9 Liminal banking tools (with enhanced search_users)")
 
 	// Add gas fee monitoring tool
 	srv.AddTool(tools.NewGasFeeTool())

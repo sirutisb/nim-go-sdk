@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/becomeliminal/nim-go-sdk/core"
 	"github.com/becomeliminal/nim-go-sdk/tools"
@@ -46,6 +47,13 @@ func createCheckSplitterTool(liminalExecutor core.ToolExecutor) core.Tool {
 				}, nil
 			}
 
+			// Normalize custom splits keys (strip '@')
+			normalizedCustomSplits := make(map[string]string)
+			for k, v := range params.CustomSplits {
+				normalizedCustomSplits[strings.TrimPrefix(k, "@")] = v
+			}
+			params.CustomSplits = normalizedCustomSplits
+
 			// Parse total amount
 			var totalAmount float64
 			if _, err := fmt.Sscanf(params.TotalAmount, "%f", &totalAmount); err != nil {
@@ -63,7 +71,8 @@ func createCheckSplitterTool(liminalExecutor core.ToolExecutor) core.Tool {
 			}
 			validatedFriends := make([]ValidatedFriend, 0, len(params.Friends))
 
-			for _, username := range params.Friends {
+			for _, rawUsername := range params.Friends {
+				username := strings.TrimPrefix(rawUsername, "@")
 				searchRequest := map[string]interface{}{
 					"query": username,
 				}
@@ -100,7 +109,7 @@ func createCheckSplitterTool(liminalExecutor core.ToolExecutor) core.Tool {
 				}
 
 				// Extract first result
-				results, ok := searchData["results"].([]interface{})
+				results, ok := searchData["users"].([]interface{})
 				if !ok {
 					return &core.ToolResult{
 						Success: false,
@@ -123,8 +132,9 @@ func createCheckSplitterTool(liminalExecutor core.ToolExecutor) core.Tool {
 					}, nil
 				}
 
-				displayTag, _ := firstResult["display_tag"].(string)
-				userID, _ := firstResult["user_id"].(string)
+				displayTag, _ := firstResult["displayTag"].(string)
+				displayTag = strings.TrimPrefix(displayTag, "@")
+				userID, _ := firstResult["userId"].(string)
 				name, _ := firstResult["name"].(string)
 
 				validatedFriends = append(validatedFriends, ValidatedFriend{

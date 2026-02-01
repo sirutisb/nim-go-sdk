@@ -11,7 +11,7 @@ func LiminalToolDefinitions() []core.ToolDefinition {
 		// Read operations
 		{
 			ToolName:        "get_balance",
-			ToolDescription: "Get the user's wallet balance.",
+			ToolDescription: "Get the user's wallet balance across all supported currencies and blockchains. Returns balances for USD (USDC on Arbitrum), EUR (EURC on Base), LIL (native token on Base), and any other tokens.",
 			InputSchema: ObjectSchema(map[string]interface{}{
 				"currency": StringProperty("Optional: filter by currency (e.g., 'USD', 'EUR', 'LIL')"),
 			}),
@@ -52,34 +52,34 @@ func LiminalToolDefinitions() []core.ToolDefinition {
 		// Write operations (require confirmation)
 		{
 			ToolName:                 "send_money",
-			ToolDescription:          "Send money to another user. Requires confirmation.",
+			ToolDescription:          "Send money to another user. Supports USD (sent as USDC on Arbitrum), EUR (sent as EURC on Base), and LIL (native token on Base). The blockchain is automatically selected based on the currency. Requires confirmation.",
 			RequiresUserConfirmation: true,
 			SummaryTemplate:          "Send {{.amount}} {{.currency}} to {{.recipient}}",
 			InputSchema: ObjectSchema(map[string]interface{}{
 				"recipient": StringProperty("Recipient's display tag (e.g., @alice) or user ID"),
 				"amount":    StringProperty("Amount to send (e.g., '50.00')"),
-				"currency":  StringProperty("Currency to send (e.g., 'USD', 'EUR', 'LIL')"),
+				"currency":  StringProperty("Currency to send. Valid values: 'USD' (USDC on Arbitrum), 'EUR' (EURC on Base), 'LIL' (on Base)"),
 				"note":      StringProperty("Optional payment note"),
 			}, "recipient", "amount", "currency"),
 		},
 		{
 			ToolName:                 "deposit_savings",
-			ToolDescription:          "Deposit funds into savings. Requires confirmation.",
+			ToolDescription:          "Deposit funds into savings to earn yield. Supports USD (USDC on Arbitrum) and EUR (EURC on Base). Funds are deposited into high-yield vaults. Requires confirmation.",
 			RequiresUserConfirmation: true,
 			SummaryTemplate:          "Deposit {{.amount}} {{.currency}} into savings",
 			InputSchema: ObjectSchema(map[string]interface{}{
 				"amount":   StringProperty("Amount to deposit"),
-				"currency": StringProperty("Currency to deposit (e.g., 'USD', 'EUR', 'LIL')"),
+				"currency": StringProperty("Currency to deposit. Valid values: 'USD', 'EUR'"),
 			}, "amount", "currency"),
 		},
 		{
 			ToolName:                 "withdraw_savings",
-			ToolDescription:          "Withdraw funds from savings. Requires confirmation.",
+			ToolDescription:          "Withdraw funds from savings back to your wallet. Supports USD (USDC on Arbitrum) and EUR (EURC on Base). Requires confirmation.",
 			RequiresUserConfirmation: true,
 			SummaryTemplate:          "Withdraw {{.amount}} {{.currency}} from savings",
 			InputSchema: ObjectSchema(map[string]interface{}{
 				"amount":   StringProperty("Amount to withdraw"),
-				"currency": StringProperty("Currency to withdraw (e.g., 'USD', 'EUR', 'LIL')"),
+				"currency": StringProperty("Currency to withdraw. Valid values: 'USD', 'EUR'"),
 			}, "amount", "currency"),
 		},
 		{
