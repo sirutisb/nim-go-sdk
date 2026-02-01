@@ -439,6 +439,97 @@ body {
   color: var(--red);
 }
 
+/* Filter Dropdown */
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-dropdown {
+  position: relative;
+}
+
+.filter-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-trigger:hover {
+  background: var(--gray-100);
+  border-color: var(--gray-300);
+}
+
+.filter-trigger.has-filter {
+  background: var(--orange-light);
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.filter-trigger svg {
+  width: 16px;
+  height: 16px;
+}
+
+.filter-badge {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.filter-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  z-index: 50;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  font-family: 'Helvetica Monospaced Pro', monospace;
+  font-size: 0.8rem;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.filter-option:hover {
+  background: var(--gray-100);
+}
+
+.filter-option.active {
+  background: var(--orange-light);
+  color: var(--orange);
+  font-weight: 500;
+}
+
+.filter-option svg {
+  width: 14px;
+  height: 14px;
+}
+
 .tx-details {
   flex: 1;
 }
@@ -537,11 +628,41 @@ body {
   flex: 1;
 }
 
+.sub-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
 .sub-name {
   font-family: 'ABC Marist', sans-serif;
   font-weight: 500;
   color: var(--black);
-  margin-bottom: 0.25rem;
+}
+
+.freq-tag {
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.freq-tag-weekly {
+  background: rgba(147, 51, 234, 0.15);
+  color: #9333ea;
+}
+
+.freq-tag-monthly {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.freq-tag-yearly {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
 }
 
 .sub-meta {
@@ -549,6 +670,11 @@ body {
   color: var(--beige);
   display: flex;
   gap: 1rem;
+}
+
+.sub-due {
+  color: var(--gray-500);
+  font-size: 0.75rem;
 }
 
 .sub-amount {

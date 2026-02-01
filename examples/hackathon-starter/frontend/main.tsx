@@ -19,6 +19,7 @@ import {
   ArrowDown,
   ArrowUp,
   Banknote,
+  Filter,
 } from 'lucide-react'
 
 // Types for API responses
@@ -101,6 +102,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [txFilter, setTxFilter] = useState<'all' | 'credit' | 'debit'>('all')
+  const [showTxFilter, setShowTxFilter] = useState(false)
 
   // Fetch dashboard data
   const fetchDashboardData = useCallback(async (showRefreshIndicator = false) => {
@@ -174,6 +177,64 @@ function App() {
       case 'monthly': return '/month'
       case 'yearly': return '/year'
       default: return ''
+    }
+  }
+
+  // Get frequency tag color class
+  const getFrequencyTagClass = (frequency: string) => {
+    switch (frequency) {
+      case 'weekly': return 'freq-tag-weekly'
+      case 'monthly': return 'freq-tag-monthly'
+      case 'yearly':
+      case 'annually': return 'freq-tag-yearly'
+      default: return 'freq-tag-monthly'
+    }
+  }
+
+  // Calculate due in time
+  const calculateDueIn = (lastPaymentDate: string, frequency: string) => {
+    if (!lastPaymentDate) return 'Due soon'
+    
+    const lastPayment = new Date(lastPaymentDate)
+    const now = new Date()
+    let nextDue: Date
+    
+    switch (frequency) {
+      case 'weekly':
+        nextDue = new Date(lastPayment)
+        nextDue.setDate(nextDue.getDate() + 7)
+        break
+      case 'monthly':
+        nextDue = new Date(lastPayment)
+        nextDue.setMonth(nextDue.getMonth() + 1)
+        break
+      case 'yearly':
+      case 'annually':
+        nextDue = new Date(lastPayment)
+        nextDue.setFullYear(nextDue.getFullYear() + 1)
+        break
+      default:
+        nextDue = new Date(lastPayment)
+        nextDue.setMonth(nextDue.getMonth() + 1)
+    }
+    
+    const diffTime = nextDue.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays < 0) {
+      return 'Overdue'
+    } else if (diffDays === 0) {
+      return 'Due today'
+    } else if (diffDays === 1) {
+      return 'Due tomorrow'
+    } else if (diffDays < 7) {
+      return `Due in ${diffDays} days`
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7)
+      return `Due in ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`
+    } else {
+      const months = Math.floor(diffDays / 30)
+      return `Due in ${months} ${months === 1 ? 'month' : 'months'}`
     }
   }
 
@@ -363,12 +424,13 @@ function App() {
                   <div className="subscriptions-list">
                     {dashboardData.subscriptions.map((sub, index) => (
                       <div key={sub.id} className="subscription-card" style={{ animationDelay: `${index * 50}ms` }}>
-                        <div className="sub-icon"><Smartphone size={20} /></div>
                         <div className="sub-details">
-                          <div className="sub-name">{sub.name.replace(' subscription', '')}</div>
+                          <div className="sub-name-row">
+                            <span className="sub-name">{sub.name.replace(' subscription', '')}</span>
+                            <span className={`freq-tag ${getFrequencyTagClass(sub.frequency)}`}>{sub.frequency}</span>
+                          </div>
                           <div className="sub-meta">
-                            <span className="sub-frequency">{sub.frequency}</span>
-                            <span className="sub-last-payment">Last: {formatDate(sub.last_payment_date)}</span>
+                            <span className="sub-due">{calculateDueIn(sub.last_payment_date, sub.frequency)}</span>
                           </div>
                         </div>
                         <div className="sub-amount">
@@ -390,13 +452,46 @@ function App() {
               <section className="dashboard-section half-width" data-section="transactions">
                 <div className="section-title-wrapper">
                   <h2 className="section-title"><Banknote size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Recent Transactions</h2>
-                  <div className="section-meta">
-                    <span className="highlight">{dashboardData.transactions.length}</span> total
+                  <div className="section-actions">
+                    <div className="filter-dropdown">
+                      <button 
+                        className={`filter-trigger ${txFilter !== 'all' ? 'has-filter' : ''}`}
+                        onClick={() => setShowTxFilter(!showTxFilter)}
+                      >
+                        <Filter size={16} />
+                        {txFilter !== 'all' && <span className="filter-badge">{txFilter === 'credit' ? 'In' : 'Out'}</span>}
+                      </button>
+                      {showTxFilter && (
+                        <div className="filter-menu">
+                          <button 
+                            className={`filter-option ${txFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => { setTxFilter('all'); setShowTxFilter(false); }}
+                          >
+                            All transactions
+                          </button>
+                          <button 
+                            className={`filter-option ${txFilter === 'credit' ? 'active' : ''}`}
+                            onClick={() => { setTxFilter('credit'); setShowTxFilter(false); }}
+                          >
+                            <ArrowDown size={14} /> Received
+                          </button>
+                          <button 
+                            className={`filter-option ${txFilter === 'debit' ? 'active' : ''}`}
+                            onClick={() => { setTxFilter('debit'); setShowTxFilter(false); }}
+                          >
+                            <ArrowUp size={14} /> Sent
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {dashboardData.transactions.length > 0 ? (
                   <div className="transactions-list">
-                    {dashboardData.transactions.slice(0, 10).map((tx, index) => (
+                    {dashboardData.transactions
+                      .filter(tx => txFilter === 'all' || tx.direction === txFilter)
+                      .slice(0, 10)
+                      .map((tx, index) => (
                       <div key={tx.id} className="transaction-item" style={{ animationDelay: `${index * 30}ms` }}>
                         <div className={`tx-direction ${tx.direction}`}>
                           {getDirectionIcon(tx.direction)}
@@ -405,7 +500,6 @@ function App() {
                           <div className="tx-note">{tx.note || `${tx.type} transaction`}</div>
                           <div className="tx-meta">
                             <span className="tx-date">{formatDate(tx.created_at)}</span>
-                            <span className="tx-type">{tx.type}</span>
                           </div>
                         </div>
                         <div className={`tx-amount ${tx.direction}`}>
