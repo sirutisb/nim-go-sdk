@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/becomeliminal/nim-go-sdk/core"
@@ -16,7 +15,7 @@ import (
 // ============================================================================
 // SavingsGoal represents a user's savings or spending goal with optional category
 type SavingsGoal struct {
-	ID            string    `json:"id"`
+	ID            int       `json:"id"`
 	UserID        string    `json:"user_id"`
 	Name          string    `json:"name"`
 	TargetAmount  float64   `json:"target_amount"`
@@ -26,22 +25,6 @@ type SavingsGoal struct {
 	Deadline      time.Time `json:"deadline"`
 	CreatedAt     time.Time `json:"created_at"`
 	IsCompleted   bool      `json:"is_completed"`
-}
-
-// Global storage for savings goals (keyed by userID -> slice of goals)
-var (
-	savingsGoals    = make(map[string][]SavingsGoal)
-	savingsGoalsMu  sync.RWMutex
-	goalIDCounter   int
-	goalIDCounterMu sync.Mutex
-)
-
-// generateGoalID creates a unique goal ID
-func generateGoalID() string {
-	goalIDCounterMu.Lock()
-	defer goalIDCounterMu.Unlock()
-	goalIDCounter++
-	return fmt.Sprintf("goal_%d", goalIDCounter)
 }
 
 // ============================================================================
@@ -96,40 +79,38 @@ func createSetSavingsGoalTool() core.Tool {
 				params.DeadlineDays = 30 // Default to monthly
 			}
 
-			// Create the goal
-			goal := SavingsGoal{
-				ID:            generateGoalID(),
-				UserID:        toolParams.UserID,
-				Name:          params.Name,
-				TargetAmount:  params.TargetAmount,
-				CurrentAmount: 0,
-				Category:      params.Category,
-				GoalType:      params.GoalType,
-				Deadline:      time.Now().AddDate(0, 0, params.DeadlineDays),
-				CreatedAt:     time.Now(),
-				IsCompleted:   false,
+			deadline := time.Now().AddDate(0, 0, params.DeadlineDays)
+
+			// Insert into database
+			result, err := db.Exec(
+				`INSERT INTO savings_goals (user_id, name, target_amount, current_amount, category, goal_type, deadline, is_completed) 
+				 VALUES (?, ?, ?, 0, ?, ?, ?, 0)`,
+				toolParams.UserID, params.Name, params.TargetAmount, params.Category, params.GoalType, deadline.Format("2006-01-02"),
+			)
+			if err != nil {
+				return &core.ToolResult{
+					Success: false,
+					Error:   fmt.Sprintf("Failed to create goal: %v", err),
+				}, nil
 			}
 
-			// Store the goal
-			savingsGoalsMu.Lock()
-			savingsGoals[toolParams.UserID] = append(savingsGoals[toolParams.UserID], goal)
-			savingsGoalsMu.Unlock()
+			id, _ := result.LastInsertId()
 
-			result := map[string]interface{}{
+			responseData := map[string]interface{}{
 				"success":        true,
-				"message":        fmt.Sprintf("Goal '%s' created successfully!", goal.Name),
-				"goal_id":        goal.ID,
-				"name":           goal.Name,
-				"target_amount":  fmt.Sprintf("$%.2f", goal.TargetAmount),
-				"goal_type":      goal.GoalType,
-				"category":       goal.Category,
-				"deadline":       goal.Deadline.Format("January 2, 2006"),
+				"message":        fmt.Sprintf("Goal '%s' created successfully!", params.Name),
+				"goal_id":        id,
+				"name":           params.Name,
+				"target_amount":  fmt.Sprintf("$%.2f", params.TargetAmount),
+				"goal_type":      params.GoalType,
+				"category":       params.Category,
+				"deadline":       deadline.Format("January 2, 2006"),
 				"days_remaining": params.DeadlineDays,
 			}
 
 			return &core.ToolResult{
 				Success: true,
-				Data:    result,
+				Data:    responseData,
 			}, nil
 		}).
 		Build()
@@ -152,10 +133,43 @@ func createGetSavingsGoalsTool() core.Tool {
 			}
 			_ = json.Unmarshal(toolParams.Input, &params)
 
-			// Retrieve user's goals
-			savingsGoalsMu.RLock()
-			userGoals := savingsGoals[toolParams.UserID]
-			savingsGoalsMu.RUnlock()
+			// Build query with optional category filter
+			query := `SELECT id, user_id, name, target_amount, current_amount, category, goal_type, deadline, created_at, is_completed 
+					  FROM savings_goals WHERE user_id = ?`
+			args := []interface{}{toolParams.UserID}
+
+			if params.Category != "" {
+				query += " AND category = ?"
+				args = append(args, params.Category)
+			}
+
+			rows, err := db.Query(query, args...)
+			if err != nil {
+				return &core.ToolResult{
+					Success: false,
+					Error:   fmt.Sprintf("Failed to fetch goals: %v", err),
+				}, nil
+			}
+			defer rows.Close()
+
+			var userGoals []SavingsGoal
+			for rows.Next() {
+				var goal SavingsGoal
+				var deadlineStr, createdAtStr string
+				var isCompletedInt int
+
+				err := rows.Scan(&goal.ID, &goal.UserID, &goal.Name, &goal.TargetAmount, &goal.CurrentAmount,
+					&goal.Category, &goal.GoalType, &deadlineStr, &createdAtStr, &isCompletedInt)
+				if err != nil {
+					continue
+				}
+
+				goal.Deadline, _ = time.Parse("2006-01-02", deadlineStr)
+				goal.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAtStr)
+				goal.IsCompleted = isCompletedInt == 1
+
+				userGoals = append(userGoals, goal)
+			}
 
 			if len(userGoals) == 0 {
 				return &core.ToolResult{
@@ -284,63 +298,136 @@ func createUpdateGoalProgressTool() core.Tool {
 				}, nil
 			}
 
-			savingsGoalsMu.Lock()
-			defer savingsGoalsMu.Unlock()
+			// Find the goal by name (with fuzzy matching)
+			query := `SELECT id, name, target_amount, current_amount, goal_type, is_completed 
+					  FROM savings_goals WHERE user_id = ? AND (name = ? OR name LIKE ?)`
+			row := db.QueryRow(query, toolParams.UserID, params.GoalName, "%"+params.GoalName+"%")
 
-			userGoals := savingsGoals[toolParams.UserID]
-			var foundGoal *SavingsGoal
-			var foundIndex int
-
-			// Simple search for goal by name
-			for i := range userGoals {
-				if userGoals[i].Name == params.GoalName ||
-					(len(userGoals[i].Name) > 3 && len(params.GoalName) > 3 &&
-						(contains(userGoals[i].Name, params.GoalName) || contains(params.GoalName, userGoals[i].Name))) {
-					foundGoal = &userGoals[i]
-					foundIndex = i
-					break
-				}
-			}
-
-			if foundGoal == nil {
+			var goal SavingsGoal
+			var isCompletedInt int
+			err := row.Scan(&goal.ID, &goal.Name, &goal.TargetAmount, &goal.CurrentAmount, &goal.GoalType, &isCompletedInt)
+			if err != nil {
 				return &core.ToolResult{
 					Success: false,
 					Error:   fmt.Sprintf("Goal '%s' not found. Please verify the goal name from your list of goals.", params.GoalName),
 				}, nil
 			}
+			goal.IsCompleted = isCompletedInt == 1
 
-			// Update amount
-			foundGoal.CurrentAmount += params.Amount
+			// Calculate new amount
+			newAmount := goal.CurrentAmount + params.Amount
 
 			// Check for completion
 			justCompleted := false
-			if foundGoal.GoalType == "savings" && foundGoal.CurrentAmount >= foundGoal.TargetAmount && !foundGoal.IsCompleted {
-				foundGoal.IsCompleted = true
+			newIsCompleted := goal.IsCompleted
+			if goal.GoalType == "savings" && newAmount >= goal.TargetAmount && !goal.IsCompleted {
+				newIsCompleted = true
 				justCompleted = true
 			}
 
-			// Save back to slice
-			savingsGoals[toolParams.UserID][foundIndex] = *foundGoal
+			// Update in database
+			_, err = db.Exec(`UPDATE savings_goals SET current_amount = ?, is_completed = ? WHERE id = ?`,
+				newAmount, newIsCompleted, goal.ID)
+			if err != nil {
+				return &core.ToolResult{
+					Success: false,
+					Error:   fmt.Sprintf("Failed to update goal: %v", err),
+				}, nil
+			}
 
 			message := fmt.Sprintf("Updated '%s'. New balance: $%.2f / $%.2f",
-				foundGoal.Name, foundGoal.CurrentAmount, foundGoal.TargetAmount)
+				goal.Name, newAmount, goal.TargetAmount)
 
 			if justCompleted {
 				message += " 🎉 CONGRATULATIONS! You've reached your goal! 🎉"
-			} else if foundGoal.GoalType == "spending_limit" && foundGoal.CurrentAmount > foundGoal.TargetAmount {
+			} else if goal.GoalType == "spending_limit" && newAmount > goal.TargetAmount {
 				message += " ⚠️ Alert: You have exceeded your spending limit!"
 			}
 
 			return &core.ToolResult{
 				Success: true,
 				Data: map[string]interface{}{
-					"goal_id":       foundGoal.ID,
-					"name":          foundGoal.Name,
-					"new_amount":    foundGoal.CurrentAmount,
-					"target_amount": foundGoal.TargetAmount,
-					"progress":      fmt.Sprintf("%.1f%%", (foundGoal.CurrentAmount/foundGoal.TargetAmount)*100),
+					"goal_id":       goal.ID,
+					"name":          goal.Name,
+					"new_amount":    newAmount,
+					"target_amount": goal.TargetAmount,
+					"progress":      fmt.Sprintf("%.1f%%", (newAmount/goal.TargetAmount)*100),
 					"message":       message,
-					"is_completed":  foundGoal.IsCompleted,
+					"is_completed":  newIsCompleted,
+				},
+			}, nil
+		}).
+		Build()
+}
+
+// ============================================================================
+// CUSTOM TOOL: DELETE SAVINGS GOAL
+// ============================================================================
+// Allows users to delete a savings goal by ID or name
+
+func createDeleteSavingsGoalTool() core.Tool {
+	return tools.New("delete_savings_goal").
+		Description("Delete a savings or spending goal. Provide either the goal ID or the exact name of the goal to remove it permanently.").
+		Schema(tools.ObjectSchema(map[string]interface{}{
+			"id":   tools.StringProperty("Goal ID (optional if name is provided)"),
+			"name": tools.StringProperty("Exact goal name (optional if id is provided)"),
+		})).
+		Handler(func(ctx context.Context, toolParams *core.ToolParams) (*core.ToolResult, error) {
+			var params struct {
+				ID   string `json:"id"`
+				Name string `json:"name"`
+			}
+			if err := json.Unmarshal(toolParams.Input, &params); err != nil {
+				return &core.ToolResult{
+					Success: false,
+					Error:   fmt.Sprintf("invalid input: %v", err),
+				}, nil
+			}
+
+			if params.ID == "" && params.Name == "" {
+				return &core.ToolResult{
+					Success: false,
+					Error:   "Either 'id' or 'name' must be provided",
+				}, nil
+			}
+
+			var result interface{}
+			var err error
+
+			if params.ID != "" {
+				result, err = db.Exec("DELETE FROM savings_goals WHERE user_id = ? AND id = ?", toolParams.UserID, params.ID)
+			} else {
+				result, err = db.Exec("DELETE FROM savings_goals WHERE user_id = ? AND name = ?", toolParams.UserID, params.Name)
+			}
+
+			if err != nil {
+				return &core.ToolResult{
+					Success: false,
+					Error:   fmt.Sprintf("Failed to delete goal: %v", err),
+				}, nil
+			}
+
+			sqlResult, ok := result.(interface{ RowsAffected() (int64, error) })
+			if !ok {
+				return &core.ToolResult{
+					Success: false,
+					Error:   "Failed to get deletion result",
+				}, nil
+			}
+
+			rowsAffected, _ := sqlResult.RowsAffected()
+			if rowsAffected == 0 {
+				return &core.ToolResult{
+					Success: false,
+					Error:   "No goal found with the provided identifier. Use get_savings_goals to see your goals.",
+				}, nil
+			}
+
+			return &core.ToolResult{
+				Success: true,
+				Data: map[string]interface{}{
+					"message":       "Goal deleted successfully",
+					"rows_affected": rowsAffected,
 				},
 			}, nil
 		}).

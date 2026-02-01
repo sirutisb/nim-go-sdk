@@ -43,6 +43,25 @@ func main() {
 	}
 
 	// ============================================================================
+	// DATABASE SETUP
+	// ============================================================================
+	// Initialize SQLite database for subscriptions, savings goals, and budgets
+	if err := InitDB("./data.db"); err != nil {
+		log.Fatalf("❌ Failed to initialize database: %v", err)
+	}
+	defer CloseDB()
+
+	// Seed initial subscription data (optional)
+	if err := SeedSubscriptions(); err != nil {
+		log.Printf("⚠️  Warning: Failed to seed subscriptions: %v", err)
+	}
+
+	// Seed initial transaction data (optional)
+	if err := SeedTransactions(); err != nil {
+		log.Printf("⚠️  Warning: Failed to seed transactions: %v", err)
+	}
+
+	// ============================================================================
 	// LIMINAL EXECUTOR SETUP
 	// ============================================================================
 	// The HTTPExecutor handles all API calls to Liminal banking services.
@@ -110,6 +129,12 @@ func main() {
 	srv.AddTool(createSubscriptionTrackerTool(liminalExecutor))
 	log.Println("✅ Added subscription tracker tool")
 
+	srv.AddTool(createAddSubscriptionTool())
+	log.Println("✅ Added add subscription tool")
+
+	srv.AddTool(createRemoveSubscriptionTool())
+	log.Println("✅ Added remove subscription tool")
+
 	srv.AddTool(createSpendingSummaryTool(liminalExecutor))
 	log.Println("✅ Added spending summary tool")
 
@@ -121,10 +146,13 @@ func main() {
 	srv.AddTool(createSetSavingsGoalTool())
 	srv.AddTool(createGetSavingsGoalsTool())
 	srv.AddTool(createUpdateGoalProgressTool())
+	srv.AddTool(createDeleteSavingsGoalTool())
 	log.Println("✅ Added savings goal tools")
 
 	srv.AddTool(createBudgetTool())
 	srv.AddTool(createGetBudgetsTool(liminalExecutor))
+	srv.AddTool(createUpdateBudgetTool())
+	srv.AddTool(createDeleteBudgetTool())
 	log.Println("✅ Added budget management tools")
 
 	// TODO: Add more custom tools here!
