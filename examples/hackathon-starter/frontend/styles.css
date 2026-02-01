@@ -150,6 +150,63 @@ body {
   cursor: pointer;
 }
 
+/* Balance Section */
+.balance-section {
+  background: linear-gradient(135deg, #FFB347 0%, #FF8C42 30%, #6B8DD6 60%, #7E57C2 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  animation: fadeIn 0.5s ease-out;
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-family: 'ABC Marist', sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.5rem;
+}
+
+.balance-amount {
+  font-family: 'ABC Marist', sans-serif;
+  font-size: 3rem;
+  font-weight: 500;
+  color: var(--white);
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.currency-pills {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.currency-pill {
+  padding: 0.5rem 1.5rem;
+  border-radius: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  font-family: 'Helvetica Monospaced Pro', monospace;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.currency-pill.active {
+  background: var(--white);
+  color: var(--orange);
+  border-color: var(--white);
+}
+
+.currency-pill:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
 /* Unified Content Layout */
 .unified-content {
   display: flex;
