@@ -20,6 +20,8 @@ import {
   ArrowUp,
   Banknote,
   Filter,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 
 // Types for API responses
@@ -104,6 +106,12 @@ function App() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [txFilter, setTxFilter] = useState<'all' | 'credit' | 'debit'>('all')
   const [showTxFilter, setShowTxFilter] = useState(false)
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
+
+  // Toggle section collapse
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }))
+  }
 
   // Fetch dashboard data
   const fetchDashboardData = useCallback(async (showRefreshIndicator = false) => {
@@ -364,14 +372,19 @@ function App() {
 
             {/* Savings Goals Section */}
             <section className="dashboard-section" data-section="goals">
-              <div className="section-title-wrapper">
+              <div className="section-title-wrapper clickable" onClick={() => toggleSection('goals')}>
                 <h2 className="section-title"><Target size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Savings Goals</h2>
-                <div className="section-meta">
-                  <span className="highlight">{dashboardData.summary.active_goals}</span> active ·
-                  <span className="highlight"> {dashboardData.summary.completed_goals}</span> completed
+                <div className="section-header-right">
+                  <div className="section-meta">
+                    <span className="highlight">{dashboardData.summary.active_goals}</span> active ·
+                    <span className="highlight"> {dashboardData.summary.completed_goals}</span> completed
+                  </div>
+                  <span className="collapse-icon">
+                    {collapsedSections['goals'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                  </span>
                 </div>
               </div>
-              {dashboardData.savings_goals.length > 0 ? (
+              {!collapsedSections['goals'] && (dashboardData.savings_goals.length > 0 ? (
                 <div className="goals-grid">
                   {dashboardData.savings_goals.map((goal, index) => (
                     <div key={goal.id} className={`goal-card ${goal.is_completed ? 'completed' : ''}`} style={{ animationDelay: `${index * 50}ms` }}>
@@ -399,18 +412,23 @@ function App() {
                   <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No savings goals yet</p>
                   <p className="hint">Ask Nim to help you set a savings goal!</p>
                 </div>
-              )}
+              ))}
             </section>
 
             {/* Budgets Section */}
             <section className="dashboard-section" data-section="budgets">
-              <div className="section-title-wrapper">
+              <div className="section-title-wrapper clickable" onClick={() => toggleSection('budgets')}>
                 <h2 className="section-title"><Wallet size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Budgets</h2>
-                <div className="section-meta">
-                  <span className="highlight">{dashboardData.summary.active_budgets}</span> active
+                <div className="section-header-right">
+                  <div className="section-meta">
+                    <span className="highlight">{dashboardData.summary.active_budgets}</span> active
+                  </div>
+                  <span className="collapse-icon">
+                    {collapsedSections['budgets'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                  </span>
                 </div>
               </div>
-              {dashboardData.budgets.length > 0 ? (
+              {!collapsedSections['budgets'] && (dashboardData.budgets.length > 0 ? (
                 <div className="budgets-grid">
                   {dashboardData.budgets.map((budget, index) => (
                     <div key={budget.id} className={`budget-card ${budget.is_active ? 'active' : 'inactive'}`} style={{ animationDelay: `${index * 50}ms` }}>
@@ -433,20 +451,25 @@ function App() {
                   <p><Wallet size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No budgets set</p>
                   <p className="hint">Ask Nim to help you create a budget!</p>
                 </div>
-              )}
+              ))}
             </section>
 
             {/* Horizontal Layout: Subscriptions and Transactions */}
             <div className="horizontal-sections">
               {/* Subscriptions Section */}
               <section className="dashboard-section half-width" data-section="subscriptions">
-                <div className="section-title-wrapper">
+                <div className="section-title-wrapper clickable" onClick={() => toggleSection('subscriptions')}>
                   <h2 className="section-title"><Smartphone size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Subscriptions</h2>
-                  <div className="section-meta">
-                    Total: <span className="highlight">${dashboardData.summary.monthly_subscription_cost.toFixed(2)}/month</span>
+                  <div className="section-header-right">
+                    <div className="section-meta">
+                      Total: <span className="highlight">${dashboardData.summary.monthly_subscription_cost.toFixed(2)}/month</span>
+                    </div>
+                    <span className="collapse-icon">
+                      {collapsedSections['subscriptions'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                    </span>
                   </div>
                 </div>
-                {dashboardData.subscriptions.length > 0 ? (
+                {!collapsedSections['subscriptions'] && (dashboardData.subscriptions.length > 0 ? (
                   <div className="subscriptions-list">
                     {dashboardData.subscriptions.map((sub, index) => (
                       <div key={sub.id} className="subscription-card" style={{ animationDelay: `${index * 50}ms` }}>
@@ -471,48 +494,53 @@ function App() {
                     <p><Smartphone size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No subscriptions tracked yet</p>
                     <p className="hint">Ask Nim to help you track a subscription!</p>
                   </div>
-                )}
+                ))}
               </section>
 
               {/* Transactions Section */}
               <section className="dashboard-section half-width" data-section="transactions">
-                <div className="section-title-wrapper">
+                <div className="section-title-wrapper clickable" onClick={() => toggleSection('transactions')}>
                   <h2 className="section-title"><Banknote size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Recent Transactions</h2>
-                  <div className="section-actions">
-                    <div className="filter-dropdown">
-                      <button 
-                        className={`filter-trigger ${txFilter !== 'all' ? 'has-filter' : ''}`}
-                        onClick={() => setShowTxFilter(!showTxFilter)}
-                      >
-                        <Filter size={16} />
-                        {txFilter !== 'all' && <span className="filter-badge">{txFilter === 'credit' ? 'In' : 'Out'}</span>}
-                      </button>
-                      {showTxFilter && (
-                        <div className="filter-menu">
-                          <button 
-                            className={`filter-option ${txFilter === 'all' ? 'active' : ''}`}
-                            onClick={() => { setTxFilter('all'); setShowTxFilter(false); }}
-                          >
-                            All transactions
-                          </button>
-                          <button 
-                            className={`filter-option ${txFilter === 'credit' ? 'active' : ''}`}
-                            onClick={() => { setTxFilter('credit'); setShowTxFilter(false); }}
-                          >
-                            <ArrowDown size={14} /> Received
-                          </button>
-                          <button 
-                            className={`filter-option ${txFilter === 'debit' ? 'active' : ''}`}
-                            onClick={() => { setTxFilter('debit'); setShowTxFilter(false); }}
-                          >
-                            <ArrowUp size={14} /> Sent
-                          </button>
-                        </div>
-                      )}
+                  <div className="section-header-right">
+                    <div className="section-actions">
+                      <div className="filter-dropdown" onClick={(e) => e.stopPropagation()}>
+                        <button 
+                          className={`filter-trigger ${txFilter !== 'all' ? 'has-filter' : ''}`}
+                          onClick={() => setShowTxFilter(!showTxFilter)}
+                        >
+                          <Filter size={16} />
+                          {txFilter !== 'all' && <span className="filter-badge">{txFilter === 'credit' ? 'In' : 'Out'}</span>}
+                        </button>
+                        {showTxFilter && (
+                          <div className="filter-menu">
+                            <button 
+                              className={`filter-option ${txFilter === 'all' ? 'active' : ''}`}
+                              onClick={() => { setTxFilter('all'); setShowTxFilter(false); }}
+                            >
+                              All transactions
+                            </button>
+                            <button 
+                              className={`filter-option ${txFilter === 'credit' ? 'active' : ''}`}
+                              onClick={() => { setTxFilter('credit'); setShowTxFilter(false); }}
+                            >
+                              <ArrowDown size={14} /> Received
+                            </button>
+                            <button 
+                              className={`filter-option ${txFilter === 'debit' ? 'active' : ''}`}
+                              onClick={() => { setTxFilter('debit'); setShowTxFilter(false); }}
+                            >
+                              <ArrowUp size={14} /> Sent
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    <span className="collapse-icon">
+                      {collapsedSections['transactions'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+                    </span>
                   </div>
                 </div>
-                {dashboardData.transactions.length > 0 ? (
+                {!collapsedSections['transactions'] && (dashboardData.transactions.length > 0 ? (
                   <div className="transactions-list">
                     {dashboardData.transactions
                       .filter(tx => txFilter === 'all' || tx.direction === txFilter)
@@ -542,7 +570,7 @@ function App() {
                     <p><Banknote size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No transactions yet</p>
                     <p className="hint">Your transaction history will appear here</p>
                   </div>
-                )}
+                ))}
               </section>
             </div>
           </div>
