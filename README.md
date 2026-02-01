@@ -1,31 +1,7 @@
 # Nimbus Go SDK
-┌─────────────────────────────────────────────────────────────┐
-│                        Nim Go SDK                            │
-│                                                             │
-│   ┌──────────────┐     ┌──────────────┐     ┌────────────┐ │
-│   │    Server    │     │    Engine    │     │   Tools    │ │
-│   │   Handler    │────►│  Agent Loop  │────►│  Registry  │ │
-│   └──────────────┘     └──────────────┘     └────────────┘ │
-│          │                    │                    │        │
-└──────────│────────────────────│────────────────────│────────┘
-           │                    │                    │
-           │                    │                    │
-┌──────────────┐                │                    │
-│    Client    │  WebSocket     │                    │
-│ (Browser/App)│◄──────────────►│                    │
-└──────────────┘                │                    │
-                                 │                    │
-                                 ▼                    ▼
-┌──────────────────┐      ┌──────────────────────┐
-│  Confirmation    │◄────►│      Claude API      │
-│     Request      │      │    (AI Reasoning)    │
-│   (Write Ops)    │      └──────────────────────┘
-└──────────────────┘                 │
-                                     ▼
-                          ┌──────────────────────┐
-                          │     Liminal API      │
-                          │  (Banking Services)  │
-                          └──────────────────────┘
+
+<img width="746" height="827" alt="image" src="https://github.com/user-attachments/assets/1bf90187-f5a5-42a8-8f3e-e6fffafb7077" />
+
 
 Flow:
 Message → Engine → Claude → Tools → Claude → Response
