@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -40,6 +41,25 @@ func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
+	}
+
+	// ============================================================================
+	// DATABASE SETUP
+	// ============================================================================
+	// Initialize SQLite database for subscriptions, savings goals, and budgets
+	if err := InitDB("./data.db"); err != nil {
+		log.Fatalf("❌ Failed to initialize database: %v", err)
+	}
+	defer CloseDB()
+
+	// Seed initial subscription data (optional)
+	if err := SeedSubscriptions(); err != nil {
+		log.Printf("⚠️  Warning: Failed to seed subscriptions: %v", err)
+	}
+
+	// Seed initial transaction data (optional)
+	if err := SeedTransactions(); err != nil {
+		log.Printf("⚠️  Warning: Failed to seed transactions: %v", err)
 	}
 
 	// ============================================================================
@@ -110,6 +130,12 @@ func main() {
 	srv.AddTool(createSubscriptionTrackerTool(liminalExecutor))
 	log.Println("✅ Added subscription tracker tool")
 
+	srv.AddTool(createAddSubscriptionTool())
+	log.Println("✅ Added add subscription tool")
+
+	srv.AddTool(createRemoveSubscriptionTool())
+	log.Println("✅ Added remove subscription tool")
+
 	srv.AddTool(createSpendingSummaryTool(liminalExecutor))
 	log.Println("✅ Added spending summary tool")
 
@@ -125,10 +151,13 @@ func main() {
 	srv.AddTool(createSetSavingsGoalTool())
 	srv.AddTool(createGetSavingsGoalsTool())
 	srv.AddTool(createUpdateGoalProgressTool())
+	srv.AddTool(createDeleteSavingsGoalTool())
 	log.Println("✅ Added savings goal tools")
 
 	srv.AddTool(createBudgetTool())
 	srv.AddTool(createGetBudgetsTool(liminalExecutor))
+	srv.AddTool(createUpdateBudgetTool())
+	srv.AddTool(createDeleteBudgetTool())
 	log.Println("✅ Added budget management tools")
 
 	// TODO: Add more custom tools here!
@@ -147,10 +176,16 @@ func main() {
 	log.Println("🚀 Hackathon Starter Server Running")
 	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	log.Printf("📡 WebSocket endpoint: ws://localhost:%s/ws", port)
+	log.Printf("📊 Dashboard API: http://localhost:%s/api/dashboard", port)
 	log.Printf("💚 Health check: http://localhost:%s/health", port)
 	log.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	log.Println("Ready for connections! Start your frontend with: cd frontend && npm run dev")
 	log.Println()
+
+	// Register dashboard API routes before starting the server
+	RegisterDashboardRoutes(http.DefaultServeMux)
+	RegisterSSERoute(http.DefaultServeMux)
+	log.Println("✅ Registered dashboard API and SSE routes")
 
 	if err := srv.Run(":" + port); err != nil {
 		log.Fatal(err)
