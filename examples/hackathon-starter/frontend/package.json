@@ -11,6 +11,7 @@
   "dependencies": {
     "@liminalcash/nim-chat": "^0.1.0",
     "framer-motion": "^12.29.2",
+    "jspdf": "^4.0.0",
     "lucide-react": "^0.563.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

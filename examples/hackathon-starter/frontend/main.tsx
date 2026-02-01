@@ -24,6 +24,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
+import jsPDF from 'jspdf'
 
 // Types for API responses
 interface SubscriptionDTO {
@@ -408,9 +409,236 @@ function App() {
 
   // Export PDF report
   const exportReport = async () => {
+    if (!dashboardData) return
+
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.width
+    const margin = 20
+    let yPos = 20
+
+    // Get user info from localStorage (set by Liminal auth)
+    const userEmail = localStorage.getItem('userEmail') || 'user@example.com'
+    const userId = dashboardData.transactions[0]?.user_id || 'N/A'
+
+    // Title
+    doc.setFontSize(24)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Financial Report', margin, yPos)
+    
+    yPos += 10
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 100, 100)
     const now = new Date()
-    const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    alert(`Generating PDF report for ${monthYear}...\n\nThis would export a comprehensive spending report with:\n- Total spending breakdown\n- Category analysis\n- Transaction history\n- Budget comparison`)
+    const reportDate = now.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+    doc.text(`Generated: ${reportDate}`, margin, yPos)
+    
+    yPos += 15
+    
+    // User Information Section
+    doc.setFillColor(245, 245, 244)
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 20, 'F')
+    yPos += 8
+    
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text('Account Information', margin + 5, yPos)
+    yPos += 7
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(60, 60, 60)
+    doc.text(`Email: ${userEmail}`, margin + 5, yPos)
+    yPos += 5
+    doc.text(`User ID: ${userId}`, margin + 5, yPos)
+    yPos += 5
+    doc.text(`USD Balance: $${balances.USD.toFixed(2)}`, margin + 5, yPos)
+    yPos += 5
+    doc.text(`LIL Balance: ${balances.LIL.toFixed(2)} LIL`, margin + 5, yPos)
+    
+    yPos += 15
+    
+    // Divider
+    doc.setDrawColor(200, 200, 200)
+    doc.line(margin, yPos, pageWidth - margin, yPos)
+    yPos += 15
+
+    // Summary Section
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text('Summary', margin, yPos)
+    yPos += 10
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    const summaryItems = [
+      `Total Transactions: ${dashboardData.summary.total_transactions}`,
+      `Total Spent: $${formatNumber(dashboardData.summary.total_spent)}`,
+      `Total Received: $${formatNumber(dashboardData.summary.total_received)}`,
+      `Monthly Subscriptions: $${formatNumber(dashboardData.summary.monthly_subscription_cost)}`,
+      `Active Goals: ${dashboardData.summary.active_goals}`,
+      `Active Budgets: ${dashboardData.summary.active_budgets}`
+    ]
+    
+    summaryItems.forEach(item => {
+      doc.text(item, margin + 5, yPos)
+      yPos += 7
+    })
+    yPos += 10
+
+    // Subscriptions Section
+    if (dashboardData.subscriptions.length > 0) {
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Subscriptions', margin, yPos)
+      yPos += 10
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      
+      dashboardData.subscriptions.slice(0, 10).forEach(sub => {
+        if (yPos > 270) {
+          doc.addPage()
+          yPos = 20
+        }
+        doc.text(`${sub.name}`, margin + 5, yPos)
+        doc.text(`$${formatNumber(sub.amount)} ${sub.currency}`, pageWidth - margin - 30, yPos, { align: 'right' })
+        doc.setTextColor(100, 100, 100)
+        doc.text(sub.frequency, pageWidth - margin - 5, yPos, { align: 'right' })
+        doc.setTextColor(0, 0, 0)
+        yPos += 7
+      })
+      yPos += 10
+    }
+
+    // Savings Goals Section
+    if (dashboardData.savings_goals.length > 0) {
+      if (yPos > 240) {
+        doc.addPage()
+        yPos = 20
+      }
+
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Savings Goals', margin, yPos)
+      yPos += 10
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      
+      dashboardData.savings_goals.forEach(goal => {
+        if (yPos > 270) {
+          doc.addPage()
+          yPos = 20
+        }
+        doc.text(`${goal.name}`, margin + 5, yPos)
+        const progress = calculateProgress(goal.current_amount, goal.target_amount)
+        doc.text(`$${formatNumber(goal.current_amount)} / $${formatNumber(goal.target_amount)} (${progress.toFixed(0)}%)`, pageWidth - margin - 5, yPos, { align: 'right' })
+        yPos += 7
+      })
+      yPos += 10
+    }
+
+    // Budgets Section
+    if (dashboardData.budgets.length > 0) {
+      if (yPos > 240) {
+        doc.addPage()
+        yPos = 20
+      }
+
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Budgets', margin, yPos)
+      yPos += 10
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      
+      dashboardData.budgets.forEach(budget => {
+        if (yPos > 270) {
+          doc.addPage()
+          yPos = 20
+        }
+        doc.text(`${budget.name}`, margin + 5, yPos)
+        doc.text(`$${formatNumber(budget.limit_amount)}`, pageWidth - margin - 5, yPos, { align: 'right' })
+        doc.setTextColor(100, 100, 100)
+        yPos += 5
+        doc.setFontSize(8)
+        doc.text(`${formatDate(budget.start_date)} - ${formatDate(budget.end_date)}`, margin + 5, yPos)
+        doc.setFontSize(9)
+        doc.setTextColor(0, 0, 0)
+        yPos += 7
+      })
+      yPos += 10
+    }
+
+    // Recent Transactions Section
+    if (dashboardData.transactions.length > 0) {
+      if (yPos > 200) {
+        doc.addPage()
+        yPos = 20
+      }
+
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Recent Transactions', margin, yPos)
+      yPos += 10
+
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      
+      dashboardData.transactions.slice(0, 15).forEach(tx => {
+        if (yPos > 270) {
+          doc.addPage()
+          yPos = 20
+        }
+        
+        const sign = tx.direction === 'credit' ? '+' : '-'
+        const color = tx.direction === 'credit' ? [34, 197, 94] : [220, 38, 38]
+        
+        doc.text(tx.note || tx.type, margin + 5, yPos)
+        doc.setTextColor(...color)
+        doc.text(`${sign}$${tx.amount} ${tx.currency}`, pageWidth - margin - 5, yPos, { align: 'right' })
+        doc.setTextColor(100, 100, 100)
+        yPos += 5
+        doc.setFontSize(8)
+        doc.text(formatDate(tx.created_at), margin + 5, yPos)
+        doc.setFontSize(9)
+        doc.setTextColor(0, 0, 0)
+        yPos += 7
+      })
+    }
+
+    // Add footer to all pages
+    const pageCount = doc.getNumberOfPages()
+    const pageHeight = doc.internal.pageSize.height
+    
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(150, 150, 150)
+      doc.text(
+        `${userEmail} | Generated ${reportDate}`,
+        margin,
+        pageHeight - 10
+      )
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        pageWidth - margin,
+        pageHeight - 10,
+        { align: 'right' }
+      )
+    }
+
+    // Save the PDF
+    const filename = `financial-report-${now.toISOString().split('T')[0]}.pdf`
+    doc.save(filename)
   }
 
   // Animation variants
