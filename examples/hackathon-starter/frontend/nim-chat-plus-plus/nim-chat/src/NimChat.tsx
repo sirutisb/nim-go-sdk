@@ -9,21 +9,39 @@ import type { NimChatProps } from './types';
 function useDraggable(initialPosition: { x: number; y: number }) {
   const [position, setPosition] = useState(initialPosition);
   const [isDragging, setIsDragging] = useState(false);
+  const [isPotentialDrag, setIsPotentialDrag] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const DRAG_THRESHOLD = 5; // pixels to move before considering it a drag
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // Only allow dragging from the header area
     if ((e.target as HTMLElement).closest('[data-drag-handle]')) {
-      setIsDragging(true);
+      setIsPotentialDrag(true);
+      dragStartPos.current = {
+        x: e.clientX,
+        y: e.clientY,
+      };
       dragOffset.current = {
         x: e.clientX - position.x,
         y: e.clientY - position.y,
       };
-      e.preventDefault();
+      // Don't prevent default here - let clicks work normally
     }
   }, [position]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isPotentialDrag && !isDragging) {
+      // Check if we've moved enough to consider it a drag
+      const deltaX = Math.abs(e.clientX - dragStartPos.current.x);
+      const deltaY = Math.abs(e.clientY - dragStartPos.current.y);
+
+      if (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD) {
+        setIsDragging(true);
+        setIsPotentialDrag(false);
+      }
+    }
+
     if (isDragging) {
       const newX = e.clientX - dragOffset.current.x;
       const newY = e.clientY - dragOffset.current.y;
@@ -37,14 +55,15 @@ function useDraggable(initialPosition: { x: number; y: number }) {
         y: Math.max(0, Math.min(newY, maxY)),
       });
     }
-  }, [isDragging]);
+  }, [isDragging, isPotentialDrag]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
+    setIsPotentialDrag(false);
   }, []);
 
   useEffect(() => {
-    if (isDragging) {
+    if (isDragging || isPotentialDrag) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       return () => {
@@ -52,7 +71,7 @@ function useDraggable(initialPosition: { x: number; y: number }) {
         document.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, isPotentialDrag, handleMouseMove, handleMouseUp]);
 
   return { position, setPosition, isDragging, handleMouseDown };
 }
