@@ -110,6 +110,9 @@ function App() {
   const [showTxFilter, setShowTxFilter] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics'>('dashboard')
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportProgress, setExportProgress] = useState(0)
+  const [exportStage, setExportStage] = useState('')
 
   // Toggle section collapse
   const toggleSection = (section: string) => {
@@ -210,11 +213,11 @@ function App() {
   // Calculate due in time
   const calculateDueIn = (lastPaymentDate: string, frequency: string) => {
     if (!lastPaymentDate) return 'Due soon'
-    
+
     const lastPayment = new Date(lastPaymentDate)
     const now = new Date()
     let nextDue: Date
-    
+
     switch (frequency) {
       case 'weekly':
         nextDue = new Date(lastPayment)
@@ -233,10 +236,10 @@ function App() {
         nextDue = new Date(lastPayment)
         nextDue.setMonth(nextDue.getMonth() + 1)
     }
-    
+
     const diffTime = nextDue.getTime() - now.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
+
     if (diffDays < 0) {
       return 'Overdue'
     } else if (diffDays === 0) {
@@ -260,13 +263,13 @@ function App() {
   // Calculate deadline due time
   const calculateDeadlineDue = (deadline: string) => {
     if (!deadline) return 'No deadline'
-    
+
     const deadlineDate = new Date(deadline)
     const now = new Date()
-    
+
     const diffTime = deadlineDate.getTime() - now.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
+
     if (diffDays < 0) {
       return 'Overdue'
     } else if (diffDays === 0) {
@@ -325,7 +328,7 @@ function App() {
     if (!dashboardData) return []
     const monthlySpending: Record<string, number> = {}
     const now = new Date()
-    
+
     for (let i = 5; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
       const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
@@ -362,9 +365,42 @@ function App() {
 
   // Export PDF report
   const exportReport = async () => {
-    const now = new Date()
-    const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    alert(`Generating PDF report for ${monthYear}...\n\nThis would export a comprehensive spending report with:\n- Total spending breakdown\n- Category analysis\n- Transaction history\n- Budget comparison`)
+    setShowExportModal(true)
+    setExportProgress(0)
+
+    const stages = [
+      { progress: 20, stage: 'Gathering financial data...', delay: 500 },
+      { progress: 40, stage: 'Analyzing transactions...', delay: 800 },
+      { progress: 60, stage: 'Generating charts...', delay: 700 },
+      { progress: 80, stage: 'Formatting document...', delay: 600 },
+      { progress: 95, stage: 'Finalizing report...', delay: 500 },
+      { progress: 100, stage: 'Complete!', delay: 300 },
+    ]
+
+    for (const { progress, stage, delay } of stages) {
+      setExportStage(stage)
+      setExportProgress(progress)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+
+    // Generate and "save" the file (trigger download)
+    const timestamp = new Date().getTime()
+    const filename = `liminal-report-${timestamp}.pdf`
+    const blob = new Blob([''], { type: 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    // Close modal after completion
+    await new Promise(resolve => setTimeout(resolve, 800))
+    setShowExportModal(false)
+    setExportProgress(0)
+    setExportStage('')
   }
 
   return (
@@ -378,13 +414,13 @@ function App() {
           {/* Tab Navigation */}
           {dashboardData && (
             <div className="tab-navigation">
-              <button 
+              <button
                 className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
                 onClick={() => setActiveTab('dashboard')}
               >
                 <Folder size={18} />Dashboard
               </button>
-              <button 
+              <button
                 className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
                 onClick={() => setActiveTab('analytics')}
               >
@@ -539,7 +575,7 @@ function App() {
                   <div className="section-header-right">
                     <div className="section-actions">
                       <div className="filter-dropdown" onClick={(e) => e.stopPropagation()}>
-                        <button 
+                        <button
                           className={`filter-trigger ${txFilter !== 'all' ? 'has-filter' : ''}`}
                           onClick={() => setShowTxFilter(!showTxFilter)}
                         >
@@ -548,19 +584,19 @@ function App() {
                         </button>
                         {showTxFilter && (
                           <div className="filter-menu">
-                            <button 
+                            <button
                               className={`filter-option ${txFilter === 'all' ? 'active' : ''}`}
                               onClick={() => { setTxFilter('all'); setShowTxFilter(false); }}
                             >
                               All transactions
                             </button>
-                            <button 
+                            <button
                               className={`filter-option ${txFilter === 'credit' ? 'active' : ''}`}
                               onClick={() => { setTxFilter('credit'); setShowTxFilter(false); }}
                             >
                               <ArrowDown size={14} /> Received
                             </button>
-                            <button 
+                            <button
                               className={`filter-option ${txFilter === 'debit' ? 'active' : ''}`}
                               onClick={() => { setTxFilter('debit'); setShowTxFilter(false); }}
                             >
@@ -581,24 +617,24 @@ function App() {
                       .filter(tx => txFilter === 'all' || tx.direction === txFilter)
                       .slice(0, 10)
                       .map((tx, index) => (
-                      <div key={tx.id} className="transaction-item" style={{ animationDelay: `${index * 30}ms` }}>
-                        <div className={`tx-direction ${tx.direction}`}>
-                          {getDirectionIcon(tx.direction)}
-                        </div>
-                        <div className="tx-details">
-                          <div className="tx-note">{tx.note || `${tx.type} transaction`}</div>
-                          <div className="tx-meta">
-                            <span className="tx-date">{formatDate(tx.created_at)}</span>
+                        <div key={tx.id} className="transaction-item" style={{ animationDelay: `${index * 30}ms` }}>
+                          <div className={`tx-direction ${tx.direction}`}>
+                            {getDirectionIcon(tx.direction)}
+                          </div>
+                          <div className="tx-details">
+                            <div className="tx-note">{tx.note || `${tx.type} transaction`}</div>
+                            <div className="tx-meta">
+                              <span className="tx-date">{formatDate(tx.created_at)}</span>
+                            </div>
+                          </div>
+                          <div className={`tx-amount ${tx.direction}`}>
+                            {tx.direction === 'credit' ? '+' : ''}{tx.amount} {tx.currency}
+                          </div>
+                          <div className={`tx-status ${getStatusColor(tx.status)}`}>
+                            {tx.status}
                           </div>
                         </div>
-                        <div className={`tx-amount ${tx.direction}`}>
-                          {tx.direction === 'credit' ? '+' : ''}{tx.amount} {tx.currency}
-                        </div>
-                        <div className={`tx-status ${getStatusColor(tx.status)}`}>
-                          {tx.status}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 ) : (
                   <div className="empty-state">
@@ -628,19 +664,19 @@ function App() {
                         const total = data.reduce((sum, item) => sum + item.value, 0)
                         let currentAngle = 0
                         const colors = ['#FF6D00', '#9BC1F3', '#9E8C78', '#FFB347', '#7E57C2', '#22C55E']
-                        
+
                         return data.map((item, i) => {
                           const percentage = (item.value / total) * 100
                           const angle = (item.value / total) * 360
                           const startAngle = currentAngle
                           currentAngle += angle
-                          
+
                           const x1 = 100 + 80 * Math.cos((startAngle - 90) * Math.PI / 180)
                           const y1 = 100 + 80 * Math.sin((startAngle - 90) * Math.PI / 180)
                           const x2 = 100 + 80 * Math.cos((startAngle + angle - 90) * Math.PI / 180)
                           const y2 = 100 + 80 * Math.sin((startAngle + angle - 90) * Math.PI / 180)
                           const largeArc = angle > 180 ? 1 : 0
-                          
+
                           return (
                             <path
                               key={i}
@@ -693,15 +729,15 @@ function App() {
                         const width = 600 - padding * 2
                         const height = 300 - padding * 2
                         const stepX = width / (data.length - 1 || 1)
-                        
+
                         const points = data.map((d, i) => {
                           const x = padding + i * stepX
                           const y = padding + height - (d.amount / maxAmount) * height
                           return `${x},${y}`
                         }).join(' ')
-                        
+
                         const areaPoints = `${padding},${padding + height} ${points} ${padding + width},${padding + height}`
-                        
+
                         return (
                           <g>
                             {/* Grid lines */}
@@ -726,14 +762,14 @@ function App() {
                                 </text>
                               </g>
                             ))}
-                            
+
                             {/* Area fill */}
                             <polygon
                               points={areaPoints}
                               fill="#FF6D00"
                               opacity="0.1"
                             />
-                            
+
                             {/* Line */}
                             <polyline
                               points={points}
@@ -743,7 +779,7 @@ function App() {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                             />
-                            
+
                             {/* Data points */}
                             {data.map((d, i) => {
                               const x = padding + i * stepX
@@ -793,8 +829,8 @@ function App() {
                   <div className="timeline-wrapper">
                     {getGoalTimeline().map((goal, i) => (
                       <div key={i} className="timeline-item">
-                        <div className="timeline-marker" style={{ 
-                          background: goal.progress >= 75 ? '#22C55E' : goal.progress >= 50 ? '#FF6D00' : '#9BC1F3' 
+                        <div className="timeline-marker" style={{
+                          background: goal.progress >= 75 ? '#22C55E' : goal.progress >= 50 ? '#FF6D00' : '#9BC1F3'
                         }}>
                           <Target size={16} />
                         </div>
@@ -861,6 +897,41 @@ function App() {
         position="bottom-right"
         defaultOpen={false}
       />
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="export-modal-overlay">
+          <div className="export-modal">
+            <div className="export-modal-content">
+              <div className="export-icon">
+                <Folder size={48} className="export-icon-graphic" />
+              </div>
+              <h3 className="export-title">Exporting Report</h3>
+              <p className="export-stage">{exportStage}</p>
+
+              <div className="export-progress-container">
+                <div className="export-progress-bar">
+                  <div
+                    className="export-progress-fill"
+                    style={{ width: `${exportProgress}%` }}
+                  />
+                </div>
+                <span className="export-progress-text">{exportProgress}%</span>
+              </div>
+
+              {exportProgress === 100 && (
+                <div className="export-success">
+                  <svg className="checkmark" viewBox="0 0 52 52">
+                    <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+                    <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                  </svg>
+                  <p className="export-success-text">Report saved successfully!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
