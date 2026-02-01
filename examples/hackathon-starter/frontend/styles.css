@@ -69,10 +69,11 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 1.5rem;
+  padding: 1.5rem 1.5rem;
   margin-bottom: 1.5rem;
   border-bottom: 2px solid rgba(158, 140, 120, 0.15);
   animation: fadeIn 0.5s ease-out;
+  gap: 2rem;
 }
 
 .header-content h1 {
@@ -1033,5 +1034,277 @@ body {
 
   .sub-amount {
     text-align: left;
+  }
+}
+/* Tab Navigation */
+.tab-navigation {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0;
+  background: transparent;
+  border-bottom: none;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  font-family: 'Helvetica Monospaced Pro', monospace;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: var(--black);
+  background: var(--gray-100);
+  border-color: var(--gray-300);
+}
+
+.tab-btn.active {
+  color: var(--white);
+  background: var(--orange);
+  border-color: var(--orange);
+}
+
+.tab-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Analytics View */
+.analytics-view {
+  animation: fadeIn 0.3s ease;
+}
+
+.analytics-section {
+  margin-bottom: 2rem;
+}
+
+/* Chart Container */
+.chart-container {
+  background: var(--white);
+  padding: 1.5rem;
+  border-radius: 16px;
+  min-height: 300px;
+}
+
+/* Pie Chart */
+.pie-chart-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.pie-svg {
+  width: 250px;
+  height: 250px;
+}
+
+.pie-legend {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.legend-item:hover {
+  background: var(--gray-100);
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--black);
+}
+
+.legend-value {
+  font-size: 0.875rem;
+  color: var(--gray-500);
+  font-family: 'ABC Marist', sans-serif;
+}
+
+/* Line Chart */
+.line-chart-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.line-svg {
+  width: 100%;
+  height: auto;
+  min-width: 500px;
+}
+
+/* Goal Timeline */
+.goal-timeline {
+  background: var(--white);
+  padding: 1.5rem;
+  border-radius: 16px;
+}
+
+.timeline-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 1rem;
+  position: relative;
+}
+
+.timeline-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 18px;
+  top: 40px;
+  bottom: -24px;
+  width: 2px;
+  background: var(--gray-200);
+}
+
+.timeline-marker {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-content {
+  flex: 1;
+  padding-bottom: 0.5rem;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.timeline-header h4 {
+  font-family: 'ABC Marist', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--black);
+}
+
+.timeline-date {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  font-weight: 500;
+}
+
+.timeline-progress {
+  margin-bottom: 0.5rem;
+}
+
+.timeline-progress .progress-label {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
+.timeline-eta {
+  font-size: 0.75rem;
+  color: var(--orange);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Export Actions */
+.export-actions {
+  background: var(--white);
+  padding: 1.5rem;
+  border-radius: 16px;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #FFB347 0%, #FF8C42 30%, #FF6D00 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--white);
+}
+
+.export-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 109, 0, 0.3);
+}
+
+.export-btn svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.export-content {
+  flex: 1;
+  text-align: left;
+}
+
+.export-content h4 {
+  font-family: 'ABC Marist', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.export-content p {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+/* Responsive adjustments for charts */
+@media (max-width: 768px) {
+  .pie-svg {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .line-svg {
+    min-width: 400px;
   }
 }

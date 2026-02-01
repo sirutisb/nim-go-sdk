@@ -107,6 +107,7 @@ function App() {
   const [txFilter, setTxFilter] = useState<'all' | 'credit' | 'debit'>('all')
   const [showTxFilter, setShowTxFilter] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics'>('dashboard')
 
   // Toggle section collapse
   const toggleSection = (section: string) => {
@@ -168,7 +169,12 @@ function App() {
 
   // Format currency
   const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return `${amount.toFixed(2)} ${currency}`
+    return `${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`
+  }
+
+  // Format number with thousand separators
+  const formatNumber = (num: number, decimals: number = 2) => {
+    return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
   }
 
   // Format date
@@ -299,6 +305,66 @@ function App() {
     return Math.min((current / target) * 100, 100)
   }
 
+  // Calculate expenses by category
+  const getExpensesByCategory = () => {
+    if (!dashboardData) return []
+    const categoryMap: Record<string, number> = {}
+    dashboardData.transactions
+      .filter(tx => tx.direction === 'debit')
+      .forEach(tx => {
+        const category = tx.type || 'Other'
+        categoryMap[category] = (categoryMap[category] || 0) + parseFloat(tx.amount)
+      })
+    return Object.entries(categoryMap).map(([name, value]) => ({ name, value }))
+  }
+
+  // Calculate spending over last 6 months
+  const getSpendingOverTime = () => {
+    if (!dashboardData) return []
+    const monthlySpending: Record<string, number> = {}
+    const now = new Date()
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      monthlySpending[monthKey] = 0
+    }
+
+    dashboardData.transactions
+      .filter(tx => tx.direction === 'debit')
+      .forEach(tx => {
+        const txDate = new Date(tx.created_at)
+        const monthKey = txDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        if (monthlySpending.hasOwnProperty(monthKey)) {
+          monthlySpending[monthKey] += parseFloat(tx.amount)
+        }
+      })
+
+    return Object.entries(monthlySpending).map(([month, amount]) => ({ month, amount }))
+  }
+
+  // Calculate goal timeline
+  const getGoalTimeline = () => {
+    if (!dashboardData) return []
+    return dashboardData.savings_goals
+      .filter(g => !g.is_completed && g.deadline)
+      .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
+      .map(goal => ({
+        name: goal.name,
+        deadline: new Date(goal.deadline),
+        progress: calculateProgress(goal.current_amount, goal.target_amount),
+        target: goal.target_amount,
+        current: goal.current_amount
+      }))
+  }
+
+  // Export PDF report
+  const exportReport = async () => {
+    const now = new Date()
+    const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    alert(`Generating PDF report for ${monthYear}...\n\nThis would export a comprehensive spending report with:\n- Total spending breakdown\n- Category analysis\n- Transaction history\n- Budget comparison`)
+  }
+
   return (
     <>
       <main className="dashboard-main">
@@ -307,6 +373,23 @@ function App() {
             <h1>Financial Dashboard</h1>
             <p className="header-subtitle">All your financial data in one place</p>
           </div>
+          {/* Tab Navigation */}
+          {dashboardData && (
+            <div className="tab-navigation">
+              <button 
+                className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+                onClick={() => setActiveTab('dashboard')}
+              >
+                <Folder size={18} />Dashboard
+              </button>
+              <button 
+                className={`tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+                onClick={() => setActiveTab('analytics')}
+              >
+                <BarChart3 size={18} />Analytics
+              </button>
+            </div>
+          )}
         </header>
 
         {error && (
@@ -317,58 +400,8 @@ function App() {
         )}
 
         {/* Unified Dashboard Content */}
-        {dashboardData && (
+        {dashboardData && activeTab === 'dashboard' && (
           <div className="unified-content">
-            {/* Summary Cards Section */}
-            <section className="dashboard-section summary-section" data-section="summary">
-              <div className="section-title-wrapper">
-                <h2 className="section-title"><BarChart3 size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Overview</h2>
-                <div className="section-divider"></div>
-              </div>
-              <div className="summary-grid">
-                <div className="summary-card orange">
-                  <div className="summary-icon"><CreditCard size={24} /></div>
-                  <div className="summary-content">
-                    <div className="summary-label">Subscriptions</div>
-                    <div className="summary-value">{dashboardData.summary.total_subscriptions}</div>
-                    <div className="summary-subtitle">
-                      ${dashboardData.summary.monthly_subscription_cost.toFixed(2)}/month
-                    </div>
-                  </div>
-                </div>
-
-                <div className="summary-card blue">
-                  <div className="summary-icon"><TrendingUp size={24} /></div>
-                  <div className="summary-content">
-                    <div className="summary-label">Total Received</div>
-                    <div className="summary-value">${dashboardData.summary.total_received.toFixed(2)}</div>
-                    <div className="summary-subtitle">
-                      {dashboardData.summary.total_transactions} transactions
-                    </div>
-                  </div>
-                </div>
-
-                <div className="summary-card brown">
-                  <div className="summary-icon"><TrendingDown size={24} /></div>
-                  <div className="summary-content">
-                    <div className="summary-label">Total Spent</div>
-                    <div className="summary-value">${dashboardData.summary.total_spent.toFixed(2)}</div>
-                    <div className="summary-subtitle">This period</div>
-                  </div>
-                </div>
-
-                <div className="summary-card beige">
-                  <div className="summary-icon"><Target size={24} /></div>
-                  <div className="summary-content">
-                    <div className="summary-label">Active Goals</div>
-                    <div className="summary-value">{dashboardData.summary.active_goals}</div>
-                    <div className="summary-subtitle">
-                      {dashboardData.summary.completed_goals} completed
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
 
             {/* Savings Goals Section */}
             <section className="dashboard-section" data-section="goals">
@@ -398,7 +431,7 @@ function App() {
                           />
                         </div>
                         <div className="progress-text">
-                          ${goal.current_amount.toFixed(2)} / ${goal.target_amount.toFixed(2)}
+                          ${formatNumber(goal.current_amount)} / ${formatNumber(goal.target_amount)}
                         </div>
                       </div>
                       <div className="goal-deadline">
@@ -438,7 +471,7 @@ function App() {
                       {/* {budget.category && <div className="budget-category">{budget.category}</div>} */}
                       <div className="budget-limit">
                         <span className="limit-label">Limit:</span>
-                        <span className="limit-amount">${budget.limit_amount.toFixed(2)}</span>
+                        <span className="limit-amount">${formatNumber(budget.limit_amount)}</span>
                       </div>
                       <div className="budget-period">
                         {formatDate(budget.start_date)} - {formatDate(budget.end_date)}
@@ -462,7 +495,7 @@ function App() {
                   <h2 className="section-title"><Smartphone size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Subscriptions</h2>
                   <div className="section-header-right">
                     <div className="section-meta">
-                      Total: <span className="highlight">${dashboardData.summary.monthly_subscription_cost.toFixed(2)}/month</span>
+                      Total: <span className="highlight">${formatNumber(dashboardData.summary.monthly_subscription_cost)}/month</span>
                     </div>
                     <span className="collapse-icon">
                       {collapsedSections['subscriptions'] ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
@@ -573,6 +606,240 @@ function App() {
                 ))}
               </section>
             </div>
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {dashboardData && activeTab === 'analytics' && (
+          <div className="unified-content analytics-view">
+            {/* Expenses by Category - Pie Chart */}
+            <section className="dashboard-section analytics-section">
+              <div className="section-title-wrapper">
+                <h2 className="section-title"><PiggyBank size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Expenses by Category</h2>
+              </div>
+              <div className="chart-container pie-chart">
+                {getExpensesByCategory().length > 0 ? (
+                  <div className="pie-chart-wrapper">
+                    <svg viewBox="0 0 200 200" className="pie-svg">
+                      {(() => {
+                        const data = getExpensesByCategory()
+                        const total = data.reduce((sum, item) => sum + item.value, 0)
+                        let currentAngle = 0
+                        const colors = ['#FF6D00', '#9BC1F3', '#9E8C78', '#FFB347', '#7E57C2', '#22C55E']
+                        
+                        return data.map((item, i) => {
+                          const percentage = (item.value / total) * 100
+                          const angle = (item.value / total) * 360
+                          const startAngle = currentAngle
+                          currentAngle += angle
+                          
+                          const x1 = 100 + 80 * Math.cos((startAngle - 90) * Math.PI / 180)
+                          const y1 = 100 + 80 * Math.sin((startAngle - 90) * Math.PI / 180)
+                          const x2 = 100 + 80 * Math.cos((startAngle + angle - 90) * Math.PI / 180)
+                          const y2 = 100 + 80 * Math.sin((startAngle + angle - 90) * Math.PI / 180)
+                          const largeArc = angle > 180 ? 1 : 0
+                          
+                          return (
+                            <path
+                              key={i}
+                              d={`M 100 100 L ${x1} ${y1} A 80 80 0 ${largeArc} 1 ${x2} ${y2} Z`}
+                              fill={colors[i % colors.length]}
+                              opacity="0.85"
+                              stroke="white"
+                              strokeWidth="2"
+                            />
+                          )
+                        })
+                      })()}
+                    </svg>
+                    <div className="pie-legend">
+                      {getExpensesByCategory().map((item, i) => {
+                        const colors = ['#FF6D00', '#9BC1F3', '#9E8C78', '#FFB347', '#7E57C2', '#22C55E']
+                        const total = getExpensesByCategory().reduce((sum, x) => sum + x.value, 0)
+                        const percentage = ((item.value / total) * 100).toFixed(1)
+                        return (
+                          <div key={i} className="legend-item">
+                            <span className="legend-color" style={{ backgroundColor: colors[i % colors.length] }}></span>
+                            <span className="legend-label">{item.name}</span>
+                            <span className="legend-value">${formatNumber(item.value)} ({percentage}%)</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <p>No expense data available</p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Spending Over Time - Line Chart */}
+            <section className="dashboard-section analytics-section">
+              <div className="section-title-wrapper">
+                <h2 className="section-title"><TrendingDown size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Spending Trend (6 Months)</h2>
+              </div>
+              <div className="chart-container line-chart">
+                {getSpendingOverTime().length > 0 ? (
+                  <div className="line-chart-wrapper">
+                    <svg viewBox="0 0 600 300" className="line-svg">
+                      {(() => {
+                        const data = getSpendingOverTime()
+                        const maxAmount = Math.max(...data.map(d => d.amount), 100)
+                        const padding = 40
+                        const width = 600 - padding * 2
+                        const height = 300 - padding * 2
+                        const stepX = width / (data.length - 1 || 1)
+                        
+                        const points = data.map((d, i) => {
+                          const x = padding + i * stepX
+                          const y = padding + height - (d.amount / maxAmount) * height
+                          return `${x},${y}`
+                        }).join(' ')
+                        
+                        const areaPoints = `${padding},${padding + height} ${points} ${padding + width},${padding + height}`
+                        
+                        return (
+                          <g>
+                            {/* Grid lines */}
+                            {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+                              <g key={i}>
+                                <line
+                                  x1={padding}
+                                  y1={padding + height * ratio}
+                                  x2={padding + width}
+                                  y2={padding + height * ratio}
+                                  stroke="#E5E5E5"
+                                  strokeWidth="1"
+                                />
+                                <text
+                                  x={padding - 10}
+                                  y={padding + height * ratio + 4}
+                                  textAnchor="end"
+                                  fontSize="12"
+                                  fill="#737373"
+                                >
+                                  ${(maxAmount * (1 - ratio)).toFixed(0)}
+                                </text>
+                              </g>
+                            ))}
+                            
+                            {/* Area fill */}
+                            <polygon
+                              points={areaPoints}
+                              fill="#FF6D00"
+                              opacity="0.1"
+                            />
+                            
+                            {/* Line */}
+                            <polyline
+                              points={points}
+                              fill="none"
+                              stroke="#FF6D00"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            
+                            {/* Data points */}
+                            {data.map((d, i) => {
+                              const x = padding + i * stepX
+                              const y = padding + height - (d.amount / maxAmount) * height
+                              return (
+                                <g key={i}>
+                                  <circle
+                                    cx={x}
+                                    cy={y}
+                                    r="5"
+                                    fill="#FF6D00"
+                                    stroke="white"
+                                    strokeWidth="2"
+                                  />
+                                  <text
+                                    x={x}
+                                    y={padding + height + 20}
+                                    textAnchor="middle"
+                                    fontSize="12"
+                                    fill="#737373"
+                                  >
+                                    {d.month}
+                                  </text>
+                                </g>
+                              )
+                            })}
+                          </g>
+                        )
+                      })()}
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <p>No spending data available</p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Goal Timeline */}
+            <section className="dashboard-section analytics-section">
+              <div className="section-title-wrapper">
+                <h2 className="section-title"><Target size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Goal Timeline</h2>
+              </div>
+              <div className="goal-timeline">
+                {getGoalTimeline().length > 0 ? (
+                  <div className="timeline-wrapper">
+                    {getGoalTimeline().map((goal, i) => (
+                      <div key={i} className="timeline-item">
+                        <div className="timeline-marker" style={{ 
+                          background: goal.progress >= 75 ? '#22C55E' : goal.progress >= 50 ? '#FF6D00' : '#9BC1F3' 
+                        }}>
+                          <Target size={16} />
+                        </div>
+                        <div className="timeline-content">
+                          <div className="timeline-header">
+                            <h4>{goal.name}</h4>
+                            <span className="timeline-date">{formatDate(goal.deadline.toISOString())}</span>
+                          </div>
+                          <div className="timeline-progress">
+                            <div className="progress-bar">
+                              <div className="progress-fill" style={{ width: `${goal.progress}%` }} />
+                            </div>
+                            <span className="progress-label">
+                              ${formatNumber(goal.current)} / ${formatNumber(goal.target)} ({goal.progress.toFixed(0)}%)
+                            </span>
+                          </div>
+                          <div className="timeline-eta">
+                            {calculateDeadlineDue(goal.deadline.toISOString())}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <p><Target size={18} style={{ marginRight: 8, verticalAlign: 'middle' }} />No active goals with deadlines</p>
+                    <p className="hint">Set goals with target dates to see your timeline!</p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Export Reports */}
+            <section className="dashboard-section analytics-section">
+              <div className="section-title-wrapper">
+                <h2 className="section-title"><Folder size={20} style={{ marginRight: 8, verticalAlign: 'middle' }} />Export Reports</h2>
+              </div>
+              <div className="export-actions">
+                <button className="export-btn" onClick={exportReport}>
+                  <Folder size={18} />
+                  <div className="export-content">
+                    <h4>Generate PDF Report</h4>
+                    <p>Export {new Date().toLocaleDateString('en-US', { month: 'long' })}'s spending summary</p>
+                  </div>
+                </button>
+              </div>
+            </section>
           </div>
         )}
 
