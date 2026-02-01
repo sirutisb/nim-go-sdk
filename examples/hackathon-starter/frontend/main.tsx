@@ -108,6 +108,13 @@ function App() {
   const [showTxFilter, setShowTxFilter] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics'>('dashboard')
+  const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'LIL'>('USD')
+
+  // Mock balance data
+  const balances = {
+    USD: 2.00,
+    LIL: 11.49
+  }
 
   // Toggle section collapse
   const toggleSection = (section: string) => {
@@ -402,6 +409,27 @@ function App() {
         {/* Unified Dashboard Content */}
         {dashboardData && activeTab === 'dashboard' && (
           <div className="unified-content">
+            {/* Balance Display */}
+            <div className="balance-section">
+              <p className="page-title">Your Balance</p>
+              <h1 className="balance-amount">
+                {selectedCurrency === 'USD' ? '$' : ''}{balances[selectedCurrency].toFixed(2)} {selectedCurrency === 'LIL' ? 'LIL' : ''}
+              </h1>
+              <div className="currency-pills">
+                <button 
+                  className={`currency-pill ${selectedCurrency === 'USD' ? 'active' : ''}`}
+                  onClick={() => setSelectedCurrency('USD')}
+                >
+                  USD
+                </button>
+                <button 
+                  className={`currency-pill ${selectedCurrency === 'LIL' ? 'active' : ''}`}
+                  onClick={() => setSelectedCurrency('LIL')}
+                >
+                  LIL
+                </button>
+              </div>
+            </div>
 
             {/* Savings Goals Section */}
             <section className="dashboard-section" data-section="goals">
